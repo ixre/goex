@@ -18,26 +18,28 @@ import (
 	"io"
 	"net/http"
 	"reflect"
-	"regexp"
-	"strings"
-	"sync"
+	"unicode"
 )
 
 var (
-	_globTemplateVar map[string]interface{} = nil
-	_                echo.Renderer          = new(renderer)
-	_                echo.Context           = new(Context)
+	_ echo.Renderer = new(renderer)
+	_ echo.Context  = new(Context)
 )
 
 type (
 	Echo struct {
 		*echo.Echo
 		app             gof.App
-		mux             sync.RWMutex
-		dynamicHandlers map[string]Handler // 动态处理程序
+		templateVar     map[string]interface{}
+		dynamicHandlers map[string]Handler // 动态处理程序  //todo: 删除
+	}
+	Group struct {
+		*echo.Group
+		echo *Echo
 	}
 	Context struct {
 		echo.Context
+		echo    *Echo
 		App     gof.App
 		Session *session.Session
 		Storage storage.Interface
@@ -52,17 +54,6 @@ type (
 		FactoryHandler(path string) *Handler
 	}
 )
-
-func ParseContext(c echo.Context, app gof.App) *Context {
-	req, rsp := c.Request(), c.Response()
-	s := session.Default(rsp, req)
-	return &Context{
-		Context: c,
-		Session: s,
-		Storage: app.Storage(),
-		App:     app,
-	}
-}
 
 type renderer struct {
 	*gof.CachedTemplate
@@ -82,8 +73,7 @@ func (g *renderer) Render(w io.Writer, name string,
 // new echo instance
 func New() *Echo {
 	e := &Echo{
-		Echo:            echo.New(),
-		dynamicHandlers: make(map[string]Handler),
+		Echo: echo.New(),
 	}
 	if e.app == nil {
 		if gof.CurrentApp == nil {
@@ -91,17 +81,45 @@ func New() *Echo {
 		}
 		e.app = gof.CurrentApp
 	}
-	e.Echo.Use(e.contextParser)
+	e.Echo.Use(e.contextMiddle)
 	return e
 }
 
-// 转换上下文,兼容*Context和echo.Context作为函数签名
-func (e *Echo) contextParser(h echo.HandlerFunc) echo.HandlerFunc {
+// 上下文中间处理,兼容*Context和echo.Context作为函数签名
+func (e *Echo) contextMiddle(h echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if _, ok := c.(*Context); ok {
 			return h(c)
 		}
-		return h(ParseContext(c, e.app))
+		return h(e.parseContext(c, e.app))
+	}
+}
+
+// 转换为Echo Handler
+func (e *Echo) parseHandler(h Handler) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		return h(e.parseContext(c, e.app))
+	}
+}
+
+func (e *Echo) parseContext(c echo.Context, app gof.App) *Context {
+	req, rsp := c.Request(), c.Response()
+	s := session.Default(rsp, req)
+	return &Context{
+		Context: c,
+		echo:    e,
+		Session: s,
+		Storage: app.Storage(),
+		App:     app,
+	}
+}
+
+// 分组
+func (e *Echo) Group(prefix string, m ...echo.MiddlewareFunc) *Group {
+	g := e.Echo.Group(prefix, m...)
+	return &Group{
+		Group: g,
+		echo:  e,
 	}
 }
 
@@ -110,89 +128,64 @@ func (e *Echo) SetRenderer(basePath string, notify bool, files ...string) {
 	e.Renderer = NewRenderer(basePath, notify, files...)
 }
 
-/*********  以下需重构   **********/
+func (e *Echo) RendererVar(v map[string]interface{}) {
+	e.templateVar = v
+}
 
-// 转换为Echo Handler
-func (e *Echo) ParseHandler(h Handler) func(c echo.Context) error {
-	return func(c echo.Context) error {
-		return h(ParseContext(c, e.app))
-	}
+// 获取Echo原始对象
+func (e *Echo) Classic() *echo.Echo {
+	return e.Echo
 }
 
 // 注册自定义的GET处理程序
-func (e *Echo) XGet(path string, h Handler) {
-	e.GET(path, e.ParseHandler(h))
+func (e *Echo) GET(path string, h Handler) {
+	e.Echo.GET(path, e.parseHandler(h))
+}
+
+// 注册自定义的POST处理程序
+func (e *Echo) POST(path string, h Handler) {
+	e.Echo.POST(path, e.parseHandler(h))
 }
 
 // 注册自定义的GET/POST处理程序
-func (e *Echo) XAny(path string, h Handler) {
-	e.Any(path, e.ParseHandler(h))
+func (e *Echo) Any(path string, h Handler) {
+	e.Echo.Any(path, e.parseHandler(h))
 }
 
-// 注册自定义的GET/POST处理程序
-func (e *Echo) XPost(path string, h Handler) {
-	e.POST(path, e.ParseHandler(h))
-}
-
-func (e *Echo) getMvcHandler(route string, c *Context, obj interface{}) Handler {
-	e.mux.Lock()
-	defer e.mux.Unlock()
-	a := c.Param("action")
-	k := route + a
-	if v, ok := e.dynamicHandlers[k]; ok {
-		//查找路由表
-		return v
+// 将控制器下所有的动作映射到路由
+func (e *Echo) Auto(prefix string, i interface{}) {
+	mp := getHandlerArray(i)
+	for k, v := range mp {
+		e.Any(prefix+"/"+k, v)
 	}
-	if v, ok := getHandler(obj, a); ok {
-		//存储路由表
-		e.dynamicHandlers[k] = v
-		return v
-	}
-	return nil
 }
 
-// 注册动态获取处理程序
-// todo:?? 应复写Any
-func (e *Echo) XaAny(path string, obj interface{}) {
-	h := func(c *Context) error {
-		if c.Param("action") == "" {
-			return c.String(http.StatusInternalServerError, "route must contain :action")
-		}
-		if hd := e.getMvcHandler(path, c, obj); hd != nil {
-			return hd(c)
-		}
-		return c.String(http.StatusNotFound, "no such file")
-	}
-	e.Any(path, e.ParseHandler(h))
+// 获取Echo原始的Group对象
+func (g *Group) Classic() *echo.Group {
+	return g.Group
 }
 
-func (e *Echo) XaGet(path string, obj interface{}) {
-	h := func(c *Context) error {
-		if hd := e.getMvcHandler(path, c, obj); hd != nil {
-			return hd(c)
-		}
-		return c.String(http.StatusNotFound, "no such file")
-	}
-	e.GET(path, e.ParseHandler(h))
+func (g *Group) GET(path string, h Handler) {
+	g.Group.GET(path, g.echo.parseHandler(h))
 }
 
-func (e *Echo) XaPost(path string, obj interface{}) {
-	h := func(c *Context) error {
-		if hd := e.getMvcHandler(path, c, obj); hd != nil {
-			return hd(c)
-		}
-		return c.String(http.StatusNotFound, "no such file")
-	}
-	e.POST(path, e.ParseHandler(h))
+func (g *Group) POST(path string, h Handler) {
+	g.Group.POST(path, g.echo.parseHandler(h))
 }
 
-//
-//func (e *Context) HttpResponse() http.ResponseWriter {
-//    return e.response
-//}
-//func (e *Context) HttpRequest() *http.Request {
-//    return e.request
-//}
+func (g *Group) Any(path string, h Handler) {
+	g.Group.Any(path, g.echo.parseHandler(h))
+}
+
+// 将控制器下所有的动作映射到路由
+func (g *Group) Auto(prefix string, i interface{}) {
+	mp := getHandlerArray(i)
+	for k, v := range mp {
+		g.Group.Any(prefix+"/"+k, g.echo.parseHandler(v))
+	}
+}
+
+/*********  以下需重构   **********/
 
 func (c *Context) IsPost() bool {
 	return c.Request().Method == "POST"
@@ -225,81 +218,39 @@ func (c *Context) RenderOK(name string, data interface{}) error {
 
 func (c *Context) NewData() *TemplateData {
 	return &TemplateData{
-		Var:  _globTemplateVar,
+		Var:  c.echo.templateVar,
 		Map:  make(map[string]interface{}),
 		Data: nil,
 	}
 }
 
-// get handler by reflect
-func getHandler(v interface{}, action string) (Handler, bool) {
-	t := reflect.ValueOf(v)
-	method := t.MethodByName(strings.Title(action))
-	if method.IsValid() {
-		v, ok := method.Interface().(func(*Context) error)
-		return v, ok
-	}
-	return nil, false
-}
-
-// 全局设定ECHO参数
-func GlobSet(globVars map[string]interface{}) {
-	_globTemplateVar = globVars
-}
-
-// 获取全局模版变量
-func GetGlobTemplateVars() map[string]interface{} {
-	return _globTemplateVar
-}
-
-//
-//type InterceptorFunc func(echo.Context) bool
-//
-//// 拦截器
-//func Interceptor(fn echo.HandlerFunc, ifn InterceptorFunc) echo.HandlerFunc {
-//	return func(c *echo.Context) error {
-//		if ifn(c) {
-//			return fn(c)
-//		}
-//		return nil
-//	}
-//}
-
-/****************  MIDDLE WAVE ***************/
-
-var (
-	requestFilter = map[string]*regexp.Regexp{
-		"GET": regexp.MustCompile("'|(and|or)\\b.+?(>|<|=|in|like)|\\/\\*.+?\\*\\/|<\\s*script\\b|\\bEXEC\\b|UNION" +
-			".+?SELECT|UPDATE.+?SET|INSERT\\s+INTO.+?VALUES|(SELECT|DELETE).+?FROM|(CREATE|ALTER|DROP|TRUNCATE)\\s+" +
-			"(TABLE|DATABASE)"),
-		"POST": regexp.MustCompile("\\b(and|or)\\b.{1,6}?(=|>|<|\\bin\\b|\\blike\\b)|\\/\\*" +
-			".+?\\*\\/|<\\s*script\\b|\\bEXEC\\b|UNION.+?SELECT|UPDATE.+?SET|INSERT\\s+INTO.+?VALUES|(SELECT|DELETE).+?FROM|" +
-			"(CREATE|ALTER|DROP|TRUNCATE)\\s+(TABLE|DATABASE)"),
-	}
-
-	/*
-	   getFilter = postFilter = cookieFilter = regexp.MustCompile("\\b(and|or)\\b.{1,6}?(=|>|<|\\bin\\b|\\blike\\b)|\\/\\*.+?\\*\\/|<\\s*script\\b|\\bEXEC\\b|UNION.+?SELECT|UPDATE.+?SET|INSERT\\s+INTO.+?VALUES|(SELECT|DELETE).+?FROM|(CREATE|ALTER|DROP|TRUNCATE)\\s+(TABLE|DATABASE)");
-	*/
-)
-
-// 防SQL注入
-func StopAttack(h echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		req := c.Request()
-		badRequest := false
-		method := req.Method
-		switch method {
-		case "GET":
-			badRequest = requestFilter[method].MatchString(req.URL.RawQuery)
-		case "POST":
-			badRequest = requestFilter["GET"].MatchString(req.URL.RawQuery) ||
-				requestFilter[method].MatchString(
-					req.Form.Encode())
+// 获取控制器所有的动作映射
+func getHandlerArray(i interface{}) map[string]Handler {
+	v := reflect.ValueOf(i)
+	t := reflect.TypeOf(i)
+	mp := map[string]Handler{}
+	for k, j := 0, v.NumMethod(); k < j; k++ {
+		m := v.Method(k)
+		if !m.IsValid() {
+			continue
 		}
-		if badRequest {
-			return c.HTML(http.StatusNotFound,
-				"<div style='color:red;'>您提交的参数非法,系统已记录您本次操作!</div>")
+		v2, ok := m.Interface().(func(*Context) error)
+		if ok {
+			name := routerTitle(t.Method(k).Name)
+			mp[name] = v2
 		}
-		return h(c)
 	}
+	return mp
+}
+
+//如果除首字母外均为为小写，则小写
+func routerTitle(s string) string {
+	for i, v := range s {
+		if i != 0 && unicode.IsUpper(v) {
+			return s
+		}
+	}
+	first := unicode.ToLower(rune(s[0]))
+	r := append([]rune{first}, []rune(s[1:])...)
+	return string(r)
 }
