@@ -137,6 +137,15 @@ func (e *Echo) Classic() *echo.Echo {
 	return e.Echo
 }
 
+// 静态文件路由
+func (e *Echo) Static(prefix, root string) {
+	// 解决prefix以"/"结尾，无法工作的BUG
+	if l := len(prefix); prefix[l-1] == '/' {
+		prefix = prefix[:l-1]
+	}
+	e.Echo.Static(prefix, root)
+}
+
 // 注册自定义的GET处理程序
 func (e *Echo) GET(path string, h Handler) {
 	e.Echo.GET(path, e.parseHandler(h))
@@ -193,6 +202,13 @@ func (c *Context) IsPost() bool {
 
 func (c *Context) StringOK(s string) error {
 	return c.debug(c.String(http.StatusOK, s))
+}
+
+func (c *Context) Error(err error) {
+	if err != nil {
+		//web.HttpError(c.Response(), err)
+		c.Response().Write([]byte(err.Error()))
+	}
 }
 
 func (c *Context) debug(err error) error {
