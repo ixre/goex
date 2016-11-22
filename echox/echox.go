@@ -30,7 +30,7 @@ type (
 	Echo struct {
 		*echo.Echo
 		app             gof.App
-		templateVar     map[string]interface{}
+		varMap          map[string]interface{}
 		dynamicHandlers map[string]Handler // 动态处理程序  //todo: 删除
 	}
 	Group struct {
@@ -73,7 +73,8 @@ func (g *renderer) Render(w io.Writer, name string,
 // new echo instance
 func New() *Echo {
 	e := &Echo{
-		Echo: echo.New(),
+		Echo:   echo.New(),
+		varMap: make(map[string]interface{}),
 	}
 	if e.app == nil {
 		if gof.CurrentApp == nil {
@@ -128,8 +129,14 @@ func (e *Echo) SetRenderer(basePath string, notify bool, files ...string) {
 	e.Renderer = NewRenderer(basePath, notify, files...)
 }
 
-func (e *Echo) RendererVar(v map[string]interface{}) {
-	e.templateVar = v
+// 设置变量
+func (e *Echo) SetVariable(key string, v interface{}) {
+	e.varMap[key] = v
+}
+
+// 获取变量
+func (e *Echo) GetVariable(key string) interface{} {
+	return e.varMap[key]
 }
 
 // 获取Echo原始对象
@@ -234,7 +241,7 @@ func (c *Context) RenderOK(name string, data interface{}) error {
 
 func (c *Context) NewData() *TemplateData {
 	return &TemplateData{
-		Var:  c.echo.templateVar,
+		Var:  c.echo.varMap,
 		Map:  make(map[string]interface{}),
 		Data: nil,
 	}
