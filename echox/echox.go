@@ -29,9 +29,8 @@ var (
 type (
 	Echo struct {
 		*echo.Echo
-		app             gof.App
-		varMap          map[string]interface{}
-		dynamicHandlers map[string]Handler // 动态处理程序  //todo: 删除
+		app    gof.App
+		varMap map[string]interface{}
 	}
 	Group struct {
 		*echo.Group
@@ -168,7 +167,8 @@ func (e *Echo) Any(path string, h Handler) {
 	e.Echo.Any(path, e.parseHandler(h))
 }
 
-// 将控制器下所有的动作映射到路由
+// 将控制器下所有的动作映射到路由,如果动作名只有首字母为大写，
+// 那么URL中动作名小写，反之与动作名一致
 func (e *Echo) Auto(prefix string, i interface{}) {
 	mp := getHandlerArray(i)
 	for k, v := range mp {
