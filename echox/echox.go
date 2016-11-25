@@ -207,6 +207,11 @@ func (c *Context) IsPost() bool {
 	return c.Request().Method == "POST"
 }
 
+// 获取请求完整的地址
+func (c *Context) RequestRawURI(r *http.Request) string {
+	return web.RequestRawURI(r)
+}
+
 func (c *Context) StringOK(s string) error {
 	return c.debug(c.String(http.StatusOK, s))
 }
