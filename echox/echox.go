@@ -213,6 +213,19 @@ func (g *Group) Auto(prefix string, i interface{}) {
 		g.Group.Any(prefix+"/"+k, g.echo.parseHandler(v))
 	}
 }
+func (g *Group) AutoGET(prefix string, i interface{}) {
+	mp := getHandlerArray(i)
+	for k, v := range mp {
+		g.Group.GET(prefix+"/"+k, g.echo.parseHandler(v))
+	}
+}
+
+func (g *Group) AutoPOST(prefix string, i interface{}) {
+	mp := getHandlerArray(i)
+	for k, v := range mp {
+		g.Group.POST(prefix+"/"+k, g.echo.parseHandler(v))
+	}
+}
 
 /*********  以下需重构   **********/
 

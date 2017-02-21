@@ -16,10 +16,11 @@ import (
 
 var (
 	requestFilter = map[string]*regexp.Regexp{
-		"GET": regexp.MustCompile("'|(and|or)\\b.+?(>|<|=|in|like)|\\/\\*.+?\\*\\/|<\\s*script\\b|\\bEXEC\\b|UNION" +
+		"GET": regexp.MustCompile("'|(and\\s|or\\s)\\b.+?(>|<|=|in|like)|\\/\\*" +
+			".+?\\*\\/|<\\s*script\\b|\\bEXEC\\b|UNION" +
 			".+?SELECT|UPDATE.+?SET|INSERT\\s+INTO.+?VALUES|(SELECT|DELETE).+?FROM|(CREATE|ALTER|DROP|TRUNCATE)\\s+" +
 			"(TABLE|DATABASE)"),
-		"POST": regexp.MustCompile("\\b(and|or)\\b.{1,6}?(=|>|<|\\bin\\b|\\blike\\b)|\\/\\*" +
+		"POST": regexp.MustCompile("\\b(and\\s|or\\s)\\b.{1,6}?(=|>|<|\\bin\\b|\\blike\\b)|\\/\\*" +
 			".+?\\*\\/|<\\s*script\\b|\\bEXEC\\b|UNION.+?SELECT|UPDATE.+?SET|INSERT\\s+INTO.+?VALUES|(SELECT|DELETE).+?FROM|" +
 			"(CREATE|ALTER|DROP|TRUNCATE)\\s+(TABLE|DATABASE)"),
 	}
