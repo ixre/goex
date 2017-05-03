@@ -293,7 +293,7 @@ func getHandlerArray(i interface{}) map[string]Handler {
 		}
 		v2, ok := m.Interface().(func(*Context) error)
 		if ok {
-			name := routerTitle(t.Method(k).Name)
+			name := unRouteTitle(t.Method(k).Name)
 			mp[name] = v2
 		}
 	}
@@ -301,12 +301,7 @@ func getHandlerArray(i interface{}) map[string]Handler {
 }
 
 //如果除首字母外均为为小写，则小写
-func routerTitle(s string) string {
-	for i, v := range s {
-		if i != 0 && unicode.IsUpper(v) {
-			return s
-		}
-	}
+func unRouteTitle(s string) string {
 	first := unicode.ToLower(rune(s[0]))
 	r := append([]rune{first}, []rune(s[1:])...)
 	return string(r)
