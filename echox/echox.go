@@ -19,6 +19,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"strings"
 	"unicode"
 )
 
@@ -81,7 +82,19 @@ func New() *Echo {
 		e.app = gof.CurrentApp
 	}
 	e.Echo.Use(e.contextMiddle)
+	e.Echo.HTTPErrorHandler = e.defaultErrorHandler
 	return e
+}
+
+// 默认错误处理程序
+func (e *Echo) defaultErrorHandler(err error, c echo.Context) {
+	msg := err.Error()
+	i := strings.Index(msg, "message=")
+	if i != -1 {
+		msg = msg[i+8:]
+	}
+	c.String(http.StatusInternalServerError, msg)
+	e.Echo.Logger.Error(err)
 }
 
 // 上下文中间处理,兼容*Context和echo.Context作为函数签名
