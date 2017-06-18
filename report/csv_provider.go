@@ -2,7 +2,6 @@ package report
 
 import (
 	"bytes"
-	"log"
 	"strings"
 )
 
@@ -23,7 +22,6 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 	buf := bytes.NewBufferString("")
 	// 显示表头
 	showHeader := keys != nil && len(keys) > 0
-	log.Println("---", showHeader)
 	if showHeader {
 		for i, k := range alias {
 			if i > 0 {
@@ -42,11 +40,15 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 				buf.WriteString(c.delimer)
 			}
 			data := row[k].(string)
-			//防止里面含有特殊符号
-			data = strings.Replace(data, "\"", "\"\"", -1)
-			buf.WriteString("\"")
-			buf.WriteString(data)
-			buf.WriteString("\"")
+			if strings.Index(data, "\"") == -1 {
+				buf.WriteString(data)
+			} else {
+				//防止里面含有特殊符号
+				data = strings.Replace(data, "\"", "\"\"", -1)
+				buf.WriteString("\"")
+				buf.WriteString(data)
+				buf.WriteString("\"")
+			}
 		}
 	}
 	return buf.Bytes()

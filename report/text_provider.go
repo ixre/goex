@@ -40,11 +40,15 @@ func (t *TextProvider) Export(rows []map[string]interface{},
 				buf.WriteString(t.delimer)
 			}
 			data := string(row[k].([]byte))
-			//防止里面含有特殊符号
-			data = strings.Replace(data, "\"", "\"\"", -1)
-			buf.WriteString("\"")
-			buf.WriteString(data)
-			buf.WriteString("\"")
+			if strings.Index(data, "\"") == -1 {
+				buf.WriteString(data)
+			} else {
+				//防止里面含有特殊符号
+				data = strings.Replace(data, "\"", "\"\"", -1)
+				buf.WriteString("\"")
+				buf.WriteString(data)
+				buf.WriteString("\"")
+			}
 		}
 	}
 	return buf.Bytes()
