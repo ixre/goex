@@ -32,7 +32,7 @@ func (t *TextProvider) Export(rows []map[string]interface{},
 	}
 	l := len(rows)
 	for i, row := range rows {
-		if i < l-1 {
+		if i < l {
 			buf.WriteString("\n")
 		}
 		for ki, k := range keys {

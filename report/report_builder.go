@@ -31,7 +31,7 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
                 }
                 this.config.page.src=this.config.urlHandler
                              + (this.config.urlHandler.indexOf('?')==-1?'?':'&')
-                             + 'e=' + e + '&' + data
+                             + 'portal=' + e + '&' + data
                              + '&params=' + this.config.params;
             }
         };
@@ -43,13 +43,13 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
 	buf.WriteString(`
         <div><strong>选择导出格式</strong></div>
             <ul class="columnList">
-            <li class="wbExpo_format_excel"><input checked="checked" field="ExportFormat" style="border:none" name="wbExpo_format" type="radio" value="excel" id="wbExpo_format_excel"/>
+            <li class="wbExpo_format_excel"><input checked="checked" field="export_format" style="border:none" name="wbExpo_format" type="radio" value="excel" id="wbExpo_format_excel"/>
                 <label for="wbExpo_format_excel">Excel文件</label>
             </li>
-            <li class="wbExpo_format_csv"><input type="radio" field="ExportFormat" style="border:none" name="wbExpo_format" value="csv" id="wbExpo_format_csv"/>
+            <li class="wbExpo_format_csv"><input type="radio" field="export_format" style="border:none" name="wbExpo_format" value="csv" id="wbExpo_format_csv"/>
                 <label for="wbExpo_format_csv">CSV数据文件</label>
             </li>
-            <li class="wbExpo_format_txt"><input type="radio" field="ExportFormat" style="border:none" name="wbExpo_format" value="txt" id="wbExpo_format_txt"/>
+            <li class="wbExpo_format_txt"><input type="radio" field="export_format" style="border:none" name="wbExpo_format" value="txt" id="wbExpo_format_txt"/>
                 <label for="wbExpo_format_txt">文本</label>
             </li>
             </ul>

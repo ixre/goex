@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	"log"
 	"strings"
 )
 
@@ -22,6 +23,7 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 	buf := bytes.NewBufferString("")
 	// 显示表头
 	showHeader := keys != nil && len(keys) > 0
+	log.Println("---", showHeader)
 	if showHeader {
 		for i, k := range alias {
 			if i > 0 {
@@ -32,7 +34,7 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 	}
 	l := len(rows)
 	for i, row := range rows {
-		if i < l-1 {
+		if i < l {
 			buf.WriteString("\n")
 		}
 		for ki, k := range keys {

@@ -182,8 +182,9 @@ func (manager *ExportItemManager) GetExportItem(portalKey string) IDataExportPor
 	if !exist {
 		item = manager.loadExportItem(portalKey,
 			manager.DbGetter, manager.watch)
-		log.Println("---- ", portalKey, "--", item == nil)
-		//manager.exportItems[portalKey] = item
+		if !manager.watch {
+			manager.exportItems[portalKey] = item
+		}
 	}
 	return item
 }
@@ -194,9 +195,10 @@ func (manager *ExportItemManager) loadExportItem(portalKey string,
 	dir, _ := os.Getwd()
 	arr := []string{dir, manager.RootPath, portalKey, manager.CfgFileExt}
 	filePath := strings.Join(arr, "")
-	if f, err := os.Stat(filePath); err == nil && f.IsDir() == false {
-		cfg, err := readItemConfigFromXml(filePath)
-		if err == nil {
+	f, err := os.Stat(filePath)
+	if err == nil && f.IsDir() == false {
+		cfg, err1 := readItemConfigFromXml(filePath)
+		if err1 == nil {
 			return &ExportItem{
 				fileSize:   f.Size(),
 				watch:      manager.watch,
@@ -205,6 +207,10 @@ func (manager *ExportItemManager) loadExportItem(portalKey string,
 				dbProvider: dbp,
 			}
 		}
+		err = err1
+	}
+	if err != nil {
+		log.Println("[ Export][ Error]:", err.Error(), "; portal:", portalKey)
 	}
 	return nil
 }
