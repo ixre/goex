@@ -13,7 +13,7 @@ type CsvProvider struct {
 
 func NewCsvProvider() IDataExportProvider {
 	return &CsvProvider{
-		delimer: " ",
+		delimer: ",",
 	}
 }
 
@@ -40,14 +40,21 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 				buf.WriteString(c.delimer)
 			}
 			data := row[k].(string)
-			if strings.Index(data, "\"") == -1 {
-				buf.WriteString(data)
-			} else {
-				//防止里面含有特殊符号
+			specData := strings.Index(data, " ") != -1 ||
+				strings.Index(data, "-") != -1 ||
+				strings.Index(data, "'") != -1
+
+			if strings.Index(data, "\"") != -1 {
 				data = strings.Replace(data, "\"", "\"\"", -1)
+				specData = true
+			}
+			//防止里面含有特殊符号
+			if specData {
 				buf.WriteString("\"")
 				buf.WriteString(data)
 				buf.WriteString("\"")
+			} else {
+				buf.WriteString(data)
 			}
 		}
 	}

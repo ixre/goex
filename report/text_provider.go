@@ -13,7 +13,7 @@ type TextProvider struct {
 
 func NewTextProvider() IDataExportProvider {
 	return &TextProvider{
-		delimer: " ",
+		delimer: ",",
 	}
 }
 
@@ -39,15 +39,22 @@ func (t *TextProvider) Export(rows []map[string]interface{},
 			if ki > 0 {
 				buf.WriteString(t.delimer)
 			}
-			data := string(row[k].([]byte))
-			if strings.Index(data, "\"") == -1 {
-				buf.WriteString(data)
-			} else {
-				//防止里面含有特殊符号
+			data := row[k].(string)
+			specData := strings.Index(data, " ") != -1 ||
+				strings.Index(data, "-") != -1 ||
+				strings.Index(data, "'") != -1
+
+			if strings.Index(data, "\"") != -1 {
 				data = strings.Replace(data, "\"", "\"\"", -1)
+				specData = true
+			}
+			//防止里面含有特殊符号
+			if specData {
 				buf.WriteString("\"")
 				buf.WriteString(data)
 				buf.WriteString("\"")
+			} else {
+				buf.WriteString(data)
 			}
 		}
 	}

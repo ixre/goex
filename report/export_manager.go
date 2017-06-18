@@ -11,7 +11,6 @@ package report
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/jsix/gof/db"
 	"log"
 	"os"
@@ -50,7 +49,6 @@ func (e *ExportItem) GetExportColumnNames(
 	exportColumns []string) (names []string) {
 	names = make([]string, len(exportColumns))
 	mapping := e.GetColumnNames()
-	log.Println(fmt.Sprintf("%#v", exportColumns))
 	for i, cName := range exportColumns {
 		for _, cMap := range mapping {
 			if cMap.Field == cName {

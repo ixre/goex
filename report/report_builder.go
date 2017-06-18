@@ -2,54 +2,63 @@ package report
 
 import (
 	"bytes"
-	"strconv"
 )
 
 // 生成WEB导出勾选项及脚本
-func BuildWebExportCheckOptions(p IDataExportPortal) string {
+func BuildWebExportCheckOptions(p IDataExportPortal, token string) string {
 	portal := p.(*ExportItem)
 	buf := bytes.NewBufferString("")
 	// 输出Javascript支持库
 	buf.WriteString(`<script type="text/javascript">
         var wbExpo={
-            config:{
-                //处理请求的Url地址
-                urlHandler:'',
-                //处理生成Json的对象
-                jsonHandler:null,
-                params:null,
-                page:null
+            //处理请求的Url地址
+            urlHandler:'processExport',
+            form:null,
+            chkInit:function(){
+               if(this.form != null)return false;
+               this.form = document.forms["export_form"];
+               this.form.setAttribute("action",this.urlHandler);
+               document.getElementById("params").value = this.getParams();
             },
-            doExport:function(e){
-                var data=this.config.jsonHandler.toQueryString('expo-wrapper');
-                if(this.config.params==null){
-                   var regMatch=/(\?|&)params=(.+)&*/i.exec(location.search);
-                   this.config.params=regMatch?regMatch[2]:'';
-                }
-                if(!this.config.page){
-                    this.config.page=document.getElementById('export_frame');
-                }
-                this.config.page.src=this.config.urlHandler
-                             + (this.config.urlHandler.indexOf('?')==-1?'?':'&')
-                             + 'portal=' + e + '&' + data
-                             + '&params=' + this.config.params;
+            getParams:function(){
+               var regMatch=/(\?|&)params=(.+)&*/i.exec(location.search);
+               return regMatch?regMatch[2]:'';
+            },
+            submit:function(e){
+                this.chkInit();
+                this.form.submit();
             }
         };
         </script>`)
 
 	// 输出Wrapper
-	buf.WriteString(`<div class="expo-wrapper" id="expo-wrapper">`)
+	buf.WriteString(`<div class="expo-wrapper" id="expo-wrapper">
+		<form name="export_form" method="POST" target="export_frame">`)
+	// portal
+	buf.WriteString("\n<input type=\"hidden\" name=\"portal\" value=\"")
+	buf.WriteString(portal.PortalKey)
+	buf.WriteString("\"/>\n")
+	// params
+	buf.WriteString(`<input type="hidden" name="params" value="" id="params"/>`)
+	// token
+	buf.WriteString("\n<input type=\"hidden\" name=\"token\" value=\"")
+	buf.WriteString(token)
+	buf.WriteString("\"/>\n")
+
 	// 输出导出格式
 	buf.WriteString(`
         <div><strong>选择导出格式</strong></div>
             <ul class="columnList">
-            <li class="wbExpo_format_excel"><input checked="checked" field="export_format" style="border:none" name="wbExpo_format" type="radio" value="excel" id="wbExpo_format_excel"/>
+            <li class="wbExpo_format_excel"><input type="radio" name="export_format" style="border:none"
+               value="excel" checked="checked" id="wbExpo_format_excel"/>
                 <label for="wbExpo_format_excel">Excel文件</label>
             </li>
-            <li class="wbExpo_format_csv"><input type="radio" field="export_format" style="border:none" name="wbExpo_format" value="csv" id="wbExpo_format_csv"/>
+            <li class="wbExpo_format_csv"><input type="radio" name="export_format" style="border:none"
+              value="csv" id="wbExpo_format_csv"/>
                 <label for="wbExpo_format_csv">CSV数据文件</label>
             </li>
-            <li class="wbExpo_format_txt"><input type="radio" field="export_format" style="border:none" name="wbExpo_format" value="txt" id="wbExpo_format_txt"/>
+            <li class="wbExpo_format_txt"><input type="radio" name="export_format" style="border:none"
+              value="txt" id="wbExpo_format_txt"/>
                 <label for="wbExpo_format_txt">文本</label>
             </li>
             </ul>
@@ -63,10 +72,9 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
 		buf.WriteString(`<div class="selColumn"><strong>请选择要导出的列:</strong>
             <ul class="columnList">`)
 
-		for i, col := range colNames {
-			buf.WriteString("<li><input type=\"checkbox\" style=\"border:none\" checked=\"checked\" field=\"export_fields[")
-			buf.WriteString(strconv.Itoa(i + 1))
-			buf.WriteString("]\" id=\"export_field_")
+		for _, col := range colNames {
+			buf.WriteString("<li><input type=\"checkbox\" style=\"border:none\" checked=\"checked\"")
+			buf.WriteString(" name=\"export_field\" id=\"export_field_")
 			buf.WriteString(col.Field)
 			buf.WriteString("\" value=\"")
 			buf.WriteString(col.Field)
@@ -79,11 +87,9 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
 		buf.WriteString("</ul></div>")
 	}
 
-	buf.WriteString(`<iframe id="export_frame" style="display:none"></iframe>
-        <div style="clear:both"></div></div><input type="button" class="gra-btn btn-export" onclick="wbExpo.doExport('`)
-
-	buf.WriteString(portal.PortalKey)
-	buf.WriteString(`')" value=" 导出 "/>`)
+	buf.WriteString(`<iframe id="export_frame" name="export_frame" style="display:none"></iframe>
+        <div style="clear:both"></div><input type="button" class="gra-btn btn-export" onclick="wbExpo.submit()"
+         value=" 导出 "/></form></div>`)
 
 	return buf.String()
 
