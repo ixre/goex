@@ -20,7 +20,7 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
                 params:null,
                 page:null
             },
-            doExport:function(portal){
+            doExport:function(e){
                 var data=this.config.jsonHandler.toQueryString('expo-wrapper');
                 if(this.config.params==null){
                    var regMatch=/(\?|&)params=(.+)&*/i.exec(location.search);
@@ -31,7 +31,7 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
                 }
                 this.config.page.src=this.config.urlHandler
                              + (this.config.urlHandler.indexOf('?')==-1?'?':'&')
-                             + 'portal=' + portal + '&' + data
+                             + 'e=' + e + '&' + data
                              + '&params=' + this.config.params;
             }
         };
@@ -55,7 +55,7 @@ func BuildWebExportCheckOptions(p IDataExportPortal) string {
             </ul>
         <div style="clear:both"></div><br />`)
 	// 输出勾选框
-	//if portal.sqlConfig.ColumnMapping
+	//if e.sqlConfig.ColumnMapping
 	colNames := portal.GetColumnNames()
 	if len(colNames) == 0 {
 		buf.WriteString("<div class=\"expo-no-field\">该导出方案不包含可选择的导出列</div>")

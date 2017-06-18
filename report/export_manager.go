@@ -27,10 +27,8 @@ type ExportItem struct {
 	watch         bool
 	columnMapping []ColumnMapping
 	sqlConfig     *ItemConfig
-	Base          *DataExportPortal
+	dbProvider    IDbProvider
 	PortalKey     string
-	//管理器
-	ItemManager *ExportItemManager
 }
 
 func (e *ExportItem) formatMappingString(str string) string {
@@ -47,48 +45,29 @@ func (e *ExportItem) GetColumnNames() []ColumnMapping {
 	return e.columnMapping
 }
 
-func (e *ExportItem) GetExportColumnIndexAndName(
-	exportColumnNames []string) (dict map[string]string) {
-	dict = make(map[string]string)
-	for _, cName := range exportColumnNames {
+func (e *ExportItem) GetExportColumnNames(
+	exportColumnNames []string) (names []string) {
+	names = make([]string, len(exportColumnNames))
+	for i, cName := range exportColumnNames {
 		for _, cMap := range e.GetColumnNames() {
 			if cMap.Name == cName {
-				dict[cMap.Field] = cMap.Name
+				names[i] = cMap.Name
 				break
 			}
 		}
 	}
-	return dict
-}
-
-// 检查SQL配置
-func (portal *ExportItem) checkSqlConfig() (err error) {
-	if portal.sqlConfig == nil {
-		dir, _ := os.Getwd()
-		portal.sqlConfig, err = readItemConfigFromXml(
-			strings.Join([]string{dir, portal.ItemManager.RootPath,
-				portal.PortalKey, ".xml"}, ""))
-		if err != nil {
-			portal.sqlConfig = nil
-			return err
-		}
-	}
-	return nil
+	return names
 }
 
 //获取统计数据
-func (portal *ExportItem) GetTotalView(ht map[string]string) (row map[string]interface{}) {
+func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interface{}) {
 	return nil
 }
 
-func (portal *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[string]interface{}, total int, err error) {
-	if err := portal.checkSqlConfig(); err != nil {
-		return nil, 0, err
-	}
-
+func (e *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[string]interface{}, total int, err error) {
 	total = 0
 	var _rows *sql.Rows
-	_db := portal.ItemManager.DbGetter.GetDB()
+	_db := e.dbProvider.GetDB()
 
 	//初始化添加参数
 	if _, e := ht["pageSize"]; !e {
@@ -112,8 +91,8 @@ func (portal *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[str
 	ht["page_size"] = strconv.Itoa(pageSize)
 
 	//统计总行数
-	if portal.sqlConfig.Total != "" {
-		sql := SqlFormat(portal.sqlConfig.Total, ht)
+	if e.sqlConfig.Total != "" {
+		sql := SqlFormat(e.sqlConfig.Total, ht)
 		smt, err := _db.Prepare(sql)
 
 		if err != nil {
@@ -132,8 +111,8 @@ func (portal *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[str
 	}
 
 	//获得数据
-	if portal.sqlConfig.Query != "" {
-		sql := SqlFormat(portal.sqlConfig.Query, ht)
+	if e.sqlConfig.Query != "" {
+		sql := SqlFormat(e.sqlConfig.Query, ht)
 		//log.Println("-----",sql)
 		sqlLines := strings.Split(sql, ";\n")
 		if t := len(sqlLines); t > 1 {
@@ -166,7 +145,7 @@ func (portal *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[str
 }
 
 //获取要导出的数据Json格式
-func (portal *ExportItem) GetJsonData(ht map[string]string) string {
+func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	result, err := json.Marshal(nil)
 	if err != nil {
 		return "{error:'" + err.Error() + "'}"
@@ -203,6 +182,7 @@ func (manager *ExportItemManager) GetExportItem(portalKey string) IDataExportPor
 	if !exist {
 		item = manager.loadExportItem(portalKey,
 			manager.DbGetter, manager.watch)
+		log.Println("---- ", portalKey, "--", item == nil)
 		//manager.exportItems[portalKey] = item
 	}
 	return item
@@ -218,11 +198,11 @@ func (manager *ExportItemManager) loadExportItem(portalKey string,
 		cfg, err := readItemConfigFromXml(filePath)
 		if err == nil {
 			return &ExportItem{
-				fileSize:    f.Size(),
-				watch:       manager.watch,
-				sqlConfig:   cfg,
-				PortalKey:   portalKey,
-				ItemManager: manager,
+				fileSize:   f.Size(),
+				watch:      manager.watch,
+				sqlConfig:  cfg,
+				PortalKey:  portalKey,
+				dbProvider: dbp,
 			}
 		}
 	}

@@ -39,7 +39,7 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 			if ki > 0 {
 				buf.WriteString(c.delimer)
 			}
-			data := string(row[k].([]byte))
+			data := row[k].(string)
 			//防止里面含有特殊符号
 			data = strings.Replace(data, "\"", "\"\"", -1)
 			buf.WriteString("\"")

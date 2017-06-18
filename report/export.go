@@ -58,7 +58,7 @@ type (
 		//获取统计数据
 		GetTotalView(ht map[string]string) (row map[string]interface{})
 		//根据导出的列名获取列的索引及对应键
-		GetExportColumnIndexAndName(exportColumnNames []string) (dict map[string]string)
+		GetExportColumnNames(exportColumnNames []string) (fields []string)
 	}
 
 	//导出
@@ -122,12 +122,12 @@ func parseColumnMapping(str string) []ColumnMapping {
 	return columnsMapping
 }
 
-func Export(portal IDataExportPortal, parameters Params,
+func Export(portal IDataExportPortal, parameters *Params,
 	provider IDataExportProvider) []byte {
-	//rows, _, _ := portal.GetSchemaAndData(parameters.Params)
-	return []byte("")
-	//return provider.Export(rows, portal.GetExportColumnIndexAndName(
-	//	parameters.ExportColumnNames))
+	rows, _, _ := portal.GetSchemaAndData(parameters.Params)
+	names := portal.GetExportColumnNames(
+		parameters.ExportColumnNames)
+	return provider.Export(rows, parameters.ExportColumnNames, names)
 }
 
 func GetExportParams(paramMappings string, columnNames []string) *Params {
