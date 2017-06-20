@@ -65,7 +65,7 @@ func BuildWebExportCheckOptions(p IDataExportPortal, token string) string {
         <div style="clear:both"></div><br />`)
 	// 输出勾选框
 	//if e.sqlConfig.ColumnMapping
-	colNames := portal.GetColumnNames()
+	colNames := portal.GetColumnMapping()
 	if len(colNames) == 0 {
 		buf.WriteString("<div class=\"expo-no-field\">该导出方案不包含可选择的导出列</div>")
 	} else {

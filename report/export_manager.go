@@ -11,6 +11,7 @@ package report
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/jsix/gof/db"
 	"log"
 	"os"
@@ -23,8 +24,6 @@ var _ IDataExportPortal = new(ExportItem)
 
 // 导出项目
 type ExportItem struct {
-	fileSize      int64
-	watch         bool
 	columnMapping []ColumnMapping
 	sqlConfig     *ItemConfig
 	dbProvider    IDbProvider
@@ -37,7 +36,7 @@ func (e *ExportItem) formatMappingString(str string) string {
 }
 
 //导出的列名(比如：数据表是因为列，这里我需要列出中文列)
-func (e *ExportItem) GetColumnNames() []ColumnMapping {
+func (e *ExportItem) GetColumnMapping() []ColumnMapping {
 	if e.columnMapping == nil {
 		e.sqlConfig.ColumnMapping = e.formatMappingString(e.sqlConfig.ColumnMapping)
 		e.columnMapping = parseColumnMapping(e.sqlConfig.ColumnMapping)
@@ -48,7 +47,7 @@ func (e *ExportItem) GetColumnNames() []ColumnMapping {
 func (e *ExportItem) GetExportColumnNames(
 	exportColumns []string) (names []string) {
 	names = make([]string, len(exportColumns))
-	mapping := e.GetColumnNames()
+	mapping := e.GetColumnMapping()
 	for i, cName := range exportColumns {
 		for _, cMap := range mapping {
 			if cMap.Field == cName {
@@ -66,6 +65,9 @@ func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interfac
 }
 
 func (e *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[string]interface{}, total int, err error) {
+	if e == nil || e.dbProvider == nil {
+		return nil, 0, errors.New("no such export item")
+	}
 	total = 0
 	var _rows *sql.Rows
 	_db := e.dbProvider.GetDB()
@@ -156,7 +158,6 @@ func (e *ExportItem) GetJsonData(ht map[string]string) string {
 
 //导出项管理器
 type ExportItemManager struct {
-	watch bool
 	//配置存放路径
 	RootPath string
 	//配置扩展名
@@ -167,9 +168,8 @@ type ExportItemManager struct {
 	exportItems map[string]*ExportItem
 }
 
-func NewExportManager(db IDbProvider, watch bool) *ExportItemManager {
+func NewExportManager(db IDbProvider) *ExportItemManager {
 	return &ExportItemManager{
-		watch:       watch,
 		DbGetter:    db,
 		RootPath:    "/conf/query/",
 		CfgFileExt:  ".xml",
@@ -182,8 +182,8 @@ func (manager *ExportItemManager) GetExportItem(portalKey string) IDataExportPor
 	item, exist := manager.exportItems[portalKey]
 	if !exist {
 		item = manager.loadExportItem(portalKey,
-			manager.DbGetter, manager.watch)
-		if !manager.watch {
+			manager.DbGetter)
+		if !WATCH_CONF_FILE {
 			manager.exportItems[portalKey] = item
 		}
 	}
@@ -192,7 +192,7 @@ func (manager *ExportItemManager) GetExportItem(portalKey string) IDataExportPor
 
 // 创建导出项,watch：是否监视文件变化
 func (manager *ExportItemManager) loadExportItem(portalKey string,
-	dbp IDbProvider, watch bool) *ExportItem {
+	dbp IDbProvider) *ExportItem {
 	dir, _ := os.Getwd()
 	arr := []string{dir, manager.RootPath, portalKey, manager.CfgFileExt}
 	filePath := strings.Join(arr, "")
@@ -201,8 +201,6 @@ func (manager *ExportItemManager) loadExportItem(portalKey string,
 		cfg, err1 := readItemConfigFromXml(filePath)
 		if err1 == nil {
 			return &ExportItem{
-				fileSize:   f.Size(),
-				watch:      manager.watch,
 				sqlConfig:  cfg,
 				PortalKey:  portalKey,
 				dbProvider: dbp,

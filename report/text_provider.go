@@ -18,12 +18,12 @@ func NewTextProvider() IDataExportProvider {
 }
 
 func (t *TextProvider) Export(rows []map[string]interface{},
-	keys []string, alias []string) (binary []byte) {
+	fields []string, names []string, formatter IExportFormatter) (binary []byte) {
 	buf := bytes.NewBufferString("")
 	// 显示表头
-	showHeader := keys != nil && len(keys) > 0
+	showHeader := fields != nil && len(fields) > 0
 	if showHeader {
-		for i, k := range alias {
+		for i, k := range names {
 			if i > 0 {
 				buf.WriteString(t.delimer)
 			}
@@ -35,9 +35,16 @@ func (t *TextProvider) Export(rows []map[string]interface{},
 		if i < l {
 			buf.WriteString("\n")
 		}
-		for ki, k := range keys {
+		for ki, k := range fields {
 			if ki > 0 {
 				buf.WriteString(t.delimer)
+			}
+			if row[k] == nil {
+				buf.WriteString("")
+				continue
+			}
+			if formatter != nil {
+				row[k] = formatter.Format(k, names[ki], row[k])
 			}
 			data := row[k].(string)
 			specData := strings.Index(data, " ") != -1 ||

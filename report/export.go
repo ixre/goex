@@ -18,6 +18,10 @@ import (
 	"strings"
 )
 
+var (
+	WATCH_CONF_FILE = false
+)
+
 type (
 	IDbProvider interface {
 		//获取数据库连接
@@ -25,8 +29,7 @@ type (
 	}
 
 	//数据项
-	DataExportPortal struct {
-	}
+	DataExportPortal struct{}
 
 	//列映射
 	ColumnMapping struct {
@@ -47,12 +50,10 @@ type (
 	//数据导出入口
 	IDataExportPortal interface {
 		//导出的列名(比如：数据表是因为列，这里我需要列出中文列)
-		GetColumnNames() []ColumnMapping
-
-		//导出的列名(比如：数据表是因为列，这里我需要列出中文列)
-		//ColumnNames() (names []DataColumnMapping)
+		GetColumnMapping() []ColumnMapping
 		//获取要导出的数据及表结构
-		GetSchemaAndData(ht map[string]string) (rows []map[string]interface{}, total int, err error)
+		GetSchemaAndData(ht map[string]string) (rows []map[string]interface{},
+			total int, err error)
 		//获取要导出的数据Json格式
 		GetJsonData(ht map[string]string) string
 		//获取统计数据
@@ -64,7 +65,12 @@ type (
 	//导出
 	IDataExportProvider interface {
 		//导出
-		Export(rows []map[string]interface{}, keys []string, alias []string) (binary []byte)
+		Export(rows []map[string]interface{}, fields []string, names []string,
+			formatter IExportFormatter) (binary []byte)
+	}
+	// 数据格式化器
+	IExportFormatter interface {
+		Format(field, name string, data interface{}) interface{}
 	}
 
 	//导出参数
@@ -72,7 +78,7 @@ type (
 		//参数
 		Params map[string]string
 		//要到导出的列的名称集合
-		ExportColumnNames []string
+		ExportColumnFields []string
 	}
 )
 
@@ -123,11 +129,11 @@ func parseColumnMapping(str string) []ColumnMapping {
 }
 
 func Export(portal IDataExportPortal, parameters *Params,
-	provider IDataExportProvider) []byte {
+	provider IDataExportProvider, formatter IExportFormatter) []byte {
 	rows, _, _ := portal.GetSchemaAndData(parameters.Params)
 	names := portal.GetExportColumnNames(
-		parameters.ExportColumnNames)
-	return provider.Export(rows, parameters.ExportColumnNames, names)
+		parameters.ExportColumnFields)
+	return provider.Export(rows, parameters.ExportColumnFields, names, formatter)
 }
 
 func GetExportParams(paramMappings string, columnNames []string) *Params {
@@ -143,7 +149,7 @@ func GetExportParams(paramMappings string, columnNames []string) *Params {
 			parameters[splitArr[0]] = v[len(splitArr[0])+1:]
 		}
 	}
-	return &Params{ExportColumnNames: columnNames, Params: parameters}
+	return &Params{ExportColumnFields: columnNames, Params: parameters}
 
 }
 
