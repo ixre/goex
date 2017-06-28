@@ -15,11 +15,13 @@ import (
 	"io/ioutil"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 var (
 	WATCH_CONF_FILE = false
+	interFmt        = &internalFormatter{}
 )
 
 type (
@@ -27,9 +29,6 @@ type (
 		//获取数据库连接
 		GetDB() *sql.DB
 	}
-
-	//数据项
-	DataExportPortal struct{}
 
 	//列映射
 	ColumnMapping struct {
@@ -52,7 +51,7 @@ type (
 		//导出的列名(比如：数据表是因为列，这里我需要列出中文列)
 		GetColumnMapping() []ColumnMapping
 		//获取要导出的数据及表结构
-		GetSchemaAndData(ht map[string]string) (rows []map[string]interface{},
+		GetSchemaAndData(p Params) (rows []map[string]interface{},
 			total int, err error)
 		//获取要导出的数据Json格式
 		GetJsonData(ht map[string]string) string
@@ -60,42 +59,47 @@ type (
 		GetTotalView(ht map[string]string) (row map[string]interface{})
 		//根据导出的列名获取列的索引及对应键
 		GetExportColumnNames(exportColumnNames []string) (fields []string)
+		//导出数据
+		Export(ep *ExportParams, p IExportProvider, f IExportFormatter) []byte
 	}
 
 	//导出
-	IDataExportProvider interface {
+	IExportProvider interface {
 		//导出
 		Export(rows []map[string]interface{}, fields []string, names []string,
-			formatter IExportFormatter) (binary []byte)
+			formatter []IExportFormatter) (binary []byte)
 	}
 	// 数据格式化器
 	IExportFormatter interface {
-		Format(field, name string, data interface{}) interface{}
+		Format(field, name string, rowNum int, data interface{}) interface{}
 	}
 
+	// 参数
+	Params map[string]string
+
 	//导出参数
-	Params struct {
+	ExportParams struct {
 		//参数
-		Params map[string]string
+		Params Params
 		//要到导出的列的名称集合
-		ExportColumnFields []string
+		ExportFields []string
 	}
 )
 
 // 从Map中拷贝数据
-func (p *Params) Copy(form map[string]string) {
+func (p Params) Copy(form map[string]string) {
 	for k, v := range form {
 		if k != "total" && k != "rows" && k != "params" {
-			p.Params[k] = strings.TrimSpace(v)
+			p[k] = strings.TrimSpace(v)
 		}
 	}
 }
 
 // 从表单参数中导入数据
-func (p *Params) CopyForm(form url.Values) {
+func (p Params) CopyForm(form url.Values) {
 	for k, v := range form {
 		if k != "total" && k != "rows" && k != "params" {
-			p.Params[k] = strings.TrimSpace(v[0])
+			p[k] = strings.TrimSpace(v[0])
 		}
 	}
 }
@@ -128,16 +132,9 @@ func parseColumnMapping(str string) []ColumnMapping {
 	return columnsMapping
 }
 
-func Export(portal IDataExportPortal, parameters *Params,
-	provider IDataExportProvider, formatter IExportFormatter) []byte {
-	rows, _, _ := portal.GetSchemaAndData(parameters.Params)
-	names := portal.GetExportColumnNames(
-		parameters.ExportColumnFields)
-	return provider.Export(rows, parameters.ExportColumnFields, names, formatter)
-}
-
-func GetExportParams(paramMappings string, columnNames []string) *Params {
-	parameters := make(map[string]string)
+// 转换参数
+func ParseParams(paramMappings string) Params {
+	params := Params{}
 	if paramMappings != "" {
 		paramMappings = strings.Replace(paramMappings,
 			"%3d", "=", -1)
@@ -146,11 +143,10 @@ func GetExportParams(paramMappings string, columnNames []string) *Params {
 		//添加传入的参数
 		for _, v := range paramsArr {
 			splitArr = strings.Split(v, ":")
-			parameters[splitArr[0]] = v[len(splitArr[0])+1:]
+			params[splitArr[0]] = v[len(splitArr[0])+1:]
 		}
 	}
-	return &Params{ExportColumnFields: columnNames, Params: parameters}
-
+	return params
 }
 
 // 格式化sql语句
@@ -160,4 +156,17 @@ func SqlFormat(sql string, ht map[string]string) (formatted string) {
 		formatted = strings.Replace(formatted, "{"+k+"}", v, -1)
 	}
 	return formatted
+}
+
+// 内置的格式化器
+type internalFormatter struct{}
+
+func (i *internalFormatter) Format(field, name string, rowNum int, data interface{}) interface{} {
+	if field == "{row_number}" {
+		return strconv.Itoa(rowNum + 1)
+	}
+	if data == nil {
+		return ""
+	}
+	return data
 }

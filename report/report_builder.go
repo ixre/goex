@@ -71,7 +71,6 @@ func BuildWebExportCheckOptions(p IDataExportPortal, token string) string {
 	} else {
 		buf.WriteString(`<div class="selColumn"><strong>请选择要导出的列:</strong>
             <ul class="columnList">`)
-
 		for _, col := range colNames {
 			buf.WriteString("<li><input type=\"checkbox\" style=\"border:none\" checked=\"checked\"")
 			buf.WriteString(" name=\"export_field\" id=\"export_field_")

@@ -5,20 +5,20 @@ import (
 	"strings"
 )
 
-var _ IDataExportProvider = new(CsvProvider)
+var _ IExportProvider = new(CsvProvider)
 
 type CsvProvider struct {
 	delimer string
 }
 
-func NewCsvProvider() IDataExportProvider {
+func NewCsvProvider() IExportProvider {
 	return &CsvProvider{
 		delimer: ",",
 	}
 }
 
 func (c *CsvProvider) Export(rows []map[string]interface{},
-	fields []string, names []string, formatter IExportFormatter) (binary []byte) {
+	fields []string, names []string, formatter []IExportFormatter) (binary []byte) {
 	buf := bytes.NewBufferString("")
 	// 显示表头
 	showHeader := fields != nil && len(fields) > 0
@@ -35,35 +35,39 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 		if i < l {
 			buf.WriteString("\n")
 		}
-		for ki, k := range fields {
-			if ki > 0 {
-				buf.WriteString(c.delimer)
-			}
-			if row[k] == nil {
-				buf.WriteString("")
-				continue
-			}
+		for ki, field := range fields {
+			data := row[field]
 			if formatter != nil {
-				row[k] = formatter.Format(k, names[ki], row[k])
+				for _, f := range formatter {
+					data = f.Format(field, names[ki], i, data)
+				}
 			}
-			data := row[k].(string)
-			specData := strings.Index(data, " ") != -1 ||
-				strings.Index(data, "-") != -1 ||
-				strings.Index(data, "'") != -1
-
-			if strings.Index(data, "\"") != -1 {
-				data = strings.Replace(data, "\"", "\"\"", -1)
-				specData = true
-			}
-			//防止里面含有特殊符号
-			if specData {
-				buf.WriteString("\"")
-				buf.WriteString(data)
-				buf.WriteString("\"")
-			} else {
-				buf.WriteString(data)
-			}
+			c.appendField(buf, ki, data)
 		}
 	}
 	return buf.Bytes()
+}
+
+func (c *CsvProvider) appendField(buf *bytes.Buffer, ki int, data interface{}) {
+	if ki > 0 {
+		buf.WriteString(c.delimer)
+	}
+
+	dataStr := data.(string)
+	specData := strings.Index(dataStr, " ") != -1 ||
+		strings.Index(dataStr, "-") != -1 ||
+		strings.Index(dataStr, "'") != -1
+
+	if strings.Index(dataStr, "\"") != -1 {
+		dataStr = strings.Replace(dataStr, "\"", "\"\"", -1)
+		specData = true
+	}
+	//防止里面含有特殊符号
+	if specData {
+		buf.WriteString("\"")
+		buf.WriteString(dataStr)
+		buf.WriteString("\"")
+	} else {
+		buf.WriteString(dataStr)
+	}
 }

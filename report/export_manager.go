@@ -64,7 +64,7 @@ func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interfac
 	return nil
 }
 
-func (e *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[string]interface{}, total int, err error) {
+func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, total int, err error) {
 	if e == nil || e.dbProvider == nil {
 		return nil, 0, errors.New("no such export item")
 	}
@@ -73,29 +73,29 @@ func (e *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[string]i
 	_db := e.dbProvider.GetDB()
 
 	//初始化添加参数
-	if _, e := ht["pageSize"]; !e {
-		ht["pageSize"] = "10000000000"
+	if _, e := p["pageSize"]; !e {
+		p["pageSize"] = "10000000000"
 	}
-	if _, e := ht["pageIndex"]; !e {
-		ht["pageIndex"] = "1"
+	if _, e := p["pageIndex"]; !e {
+		p["pageIndex"] = "1"
 	}
 
-	pi, _ := ht["pageIndex"]
-	ps, _ := ht["pageSize"]
+	pi, _ := p["pageIndex"]
+	ps, _ := p["pageSize"]
 	pageIndex, _ := strconv.Atoi(pi)
 	pageSize, _ := strconv.Atoi(ps)
 
 	if pageIndex > 0 {
-		ht["page_start"] = strconv.Itoa((pageIndex - 1) * pageSize)
+		p["page_start"] = strconv.Itoa((pageIndex - 1) * pageSize)
 	} else {
-		ht["page_start"] = "0"
+		p["page_start"] = "0"
 	}
-	ht["page_end"] = strconv.Itoa(pageIndex * pageSize)
-	ht["page_size"] = strconv.Itoa(pageSize)
+	p["page_end"] = strconv.Itoa(pageIndex * pageSize)
+	p["page_size"] = strconv.Itoa(pageSize)
 
 	//统计总行数
 	if e.sqlConfig.Total != "" {
-		sql := SqlFormat(e.sqlConfig.Total, ht)
+		sql := SqlFormat(e.sqlConfig.Total, p)
 		smt, err := _db.Prepare(sql)
 
 		if err != nil {
@@ -115,7 +115,7 @@ func (e *ExportItem) GetSchemaAndData(ht map[string]string) (rows []map[string]i
 
 	//获得数据
 	if e.sqlConfig.Query != "" {
-		sql := SqlFormat(e.sqlConfig.Query, ht)
+		sql := SqlFormat(e.sqlConfig.Query, p)
 		//log.Println("-----",sql)
 		sqlLines := strings.Split(sql, ";\n")
 		if t := len(sqlLines); t > 1 {
@@ -154,6 +154,18 @@ func (e *ExportItem) GetJsonData(ht map[string]string) string {
 		return "{error:'" + err.Error() + "'}"
 	}
 	return string(result)
+}
+
+func (e *ExportItem) Export(parameters *ExportParams,
+	provider IExportProvider, formatter IExportFormatter) []byte {
+	rows, _, _ := e.GetSchemaAndData(parameters.Params)
+	names := e.GetExportColumnNames(
+		parameters.ExportFields)
+	fmtArray := []IExportFormatter{interFmt}
+	if formatter != nil {
+		fmtArray = append(fmtArray, formatter)
+	}
+	return provider.Export(rows, parameters.ExportFields, names, fmtArray)
 }
 
 //导出项管理器
