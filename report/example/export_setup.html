@@ -23,9 +23,7 @@
             white-space: nowrap;
         }
 
-        .btn-export {
-            margin-left: 16px;
-        }
+
 
         strong {
             color: #333;
@@ -40,8 +38,8 @@
 </div>
 <script type="text/javascript" src="{{.Var.StaticServe}}/assets/js/base.js?v={{.Var.Version}}"></script>
 <script type="text/javascript">
-    wbExpo.config.jsonHandler = $b.json;
-    wbExpo.config.urlHandler = "processExport";
+    $_expo.config.jsonHandler = $b.json;
+    $_expo.config.urlHandler = "processExport";
 </script>
 
 </body>

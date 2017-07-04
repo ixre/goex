@@ -33,7 +33,7 @@ func (c *CsvProvider) Export(rows []map[string]interface{},
 	l := len(rows)
 	for i, row := range rows {
 		if i < l {
-			buf.WriteString("\n")
+			buf.WriteString("\r\n")
 		}
 		for ki, field := range fields {
 			data := row[field]
