@@ -7,12 +7,12 @@ import (
 )
 
 func getFileName(p *ExportItem) string {
-	dtStr := time.Now().Format("20060102_0405")
+	dtStr := time.Now().Format("200601020405")
 	i := strings.LastIndex(p.PortalKey, "/")
 	if i != -1 {
-		return p.PortalKey[i+1:] + "_" + dtStr
+		return p.PortalKey[i+1:] + "-" + dtStr
 	}
-	return p.PortalKey + "_" + dtStr
+	return p.PortalKey + "-" + dtStr
 }
 
 // 生成WEB导出勾选项及脚本
