@@ -180,10 +180,13 @@ type ExportItemManager struct {
 	exportItems map[string]*ExportItem
 }
 
-func NewExportManager(db IDbProvider) *ExportItemManager {
+func NewExportManager(db IDbProvider, rootPath string) *ExportItemManager {
+	if rootPath == "" {
+		rootPath = "/query/"
+	}
 	return &ExportItemManager{
 		DbGetter:    db,
-		RootPath:    "/conf/query/",
+		RootPath:    rootPath,
 		CfgFileExt:  ".xml",
 		exportItems: make(map[string]*ExportItem),
 	}

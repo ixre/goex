@@ -75,12 +75,6 @@ func New() *Echo {
 		Echo:   echo.New(),
 		varMap: make(map[string]interface{}),
 	}
-	if e.app == nil {
-		if gof.CurrentApp == nil {
-			panic(errors.New("not register or no global app instance for echox!"))
-		}
-		e.app = gof.CurrentApp
-	}
 	e.Echo.Use(e.contextMiddle)
 	e.Echo.HTTPErrorHandler = e.defaultErrorHandler
 	return e
@@ -109,6 +103,12 @@ func (e *Echo) contextMiddle(h echo.HandlerFunc) echo.HandlerFunc {
 
 // 转换为Echo Handler
 func (e *Echo) parseHandler(h Handler) func(c echo.Context) error {
+	if e.app == nil {
+		if gof.CurrentApp == nil {
+			panic(errors.New("not register or no global app instance for echox!"))
+		}
+		e.app = gof.CurrentApp
+	}
 	return func(c echo.Context) error {
 		return h(e.parseContext(c, e.app))
 	}
@@ -124,6 +124,15 @@ func (e *Echo) parseContext(c echo.Context, app gof.App) *Context {
 		Storage: app.Storage(),
 		App:     app,
 	}
+}
+
+func (e *Echo) SetApp(app gof.App) {
+	e.app = app
+}
+
+// 获取原始的Echo对象
+func (e *Echo) Original() *echo.Echo {
+	return e.Echo
 }
 
 // 分组
