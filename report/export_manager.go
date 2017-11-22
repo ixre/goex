@@ -97,19 +97,16 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	if e.sqlConfig.Total != "" {
 		sql := SqlFormat(e.sqlConfig.Total, p)
 		smt, err := _db.Prepare(sql)
-
+		if err == nil {
+			row := smt.QueryRow()
+			smt.Close()
+			if row != nil {
+				err = row.Scan(&total)
+			}
+		}
 		if err != nil {
 			log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
 			return nil, 0, err
-		}
-
-		row := smt.QueryRow()
-		if row != nil {
-			err = row.Scan(&total)
-			if err != nil {
-				log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-				return nil, total, err
-			}
 		}
 	}
 
@@ -121,30 +118,29 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 		if t := len(sqlLines); t > 1 {
 			for i, v := range sqlLines {
 				if i != t-1 {
-					if smt, err := _db.Prepare(v); err == nil {
+					smt, err := _db.Prepare(v)
+					if err == nil {
 						smt.Exec()
+						smt.Close()
 					}
 				}
 			}
 			sql = sqlLines[t-1]
-
 		}
 
 		smt, err := _db.Prepare(sql)
-
-		if err != nil {
-			log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-			return nil, total, err
+		if err == nil {
+			defer smt.Close()
+			_rows, err = smt.Query()
+			if err == nil {
+				data := db.RowsToMarshalMap(_rows)
+				_rows.Close()
+				return data, total, err
+			}
 		}
-		_rows, err = smt.Query()
-		if err != nil {
-			log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-			return nil, total, err
-		}
-		defer _rows.Close()
+		log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
 	}
-
-	return db.RowsToMarshalMap(_rows), total, err
+	return nil, total, err
 }
 
 //获取要导出的数据Json格式
