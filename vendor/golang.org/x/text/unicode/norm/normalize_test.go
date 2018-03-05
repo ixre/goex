@@ -555,7 +555,7 @@ var appendTestsNFC = []AppendTest{
 }
 
 var appendTestsNFD = []AppendTest{
-// TODO: Move some of the tests here.
+	// TODO: Move some of the tests here.
 }
 
 var appendTestsNFKC = []AppendTest{

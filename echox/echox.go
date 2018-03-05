@@ -105,7 +105,7 @@ func (e *Echo) contextMiddle(h echo.HandlerFunc) echo.HandlerFunc {
 func (e *Echo) parseHandler(h Handler) func(c echo.Context) error {
 	if e.app == nil {
 		if gof.CurrentApp == nil {
-			panic(errors.New("not register or no global app instance for echox!"))
+			panic(errors.New("not register or no global serve instance for echox!"))
 		}
 		e.app = gof.CurrentApp
 	}
