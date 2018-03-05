@@ -16,21 +16,26 @@ import (
 func main() {
 	var genDir string   //输出目录
 	var confPath string //设置目录
+	var table string
+	var lang string
 	flag.StringVar(&genDir, "out", "generated_code/", "generated code output directory")
 	flag.StringVar(&confPath, "conf", "./", "config path")
+	flag.StringVar(&table, "table", "", "table name or table prefix")
+	flag.StringVar(&lang, "lang", "go", "program language")
 	flag.Parse()
 
 	registry, err := gof.NewRegistry(confPath, ".")
 	if err != nil {
 		panic(err)
 	}
+	dbName := registry.GetString("gen.database.name")
 	// 初始化生成器
 	d := &orm.MySqlDialect{}
 	ds := orm.DialectSession(getDb(registry), d)
 	dg := generator.DBCodeGenerator()
 	dg.IdUpper = true
 	// 获取表格并转换
-	tables, err := dg.ParseTables(ds.TablesByPrefix("", "uams_"))
+	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, table))
 	if err != nil {
 		return
 	}
@@ -43,17 +48,16 @@ func main() {
 	dg.Var(generator.V_RepoPkgName, "repo")
 	// 读取自定义模板
 	listTP, _ := dg.ParseTemplate("code_templates/grid_list.html")
-	editTP, _ := dg.ParseTemplate("code_templates/entity_edit_table.html")
-	ctrTpl, _ := dg.ParseTemplate("code_templates/entity_c._go")
+	editTP, _ := dg.ParseTemplate("code_templates/entity_edit.html")
+	ctrTpl, _ := dg.ParseTemplate("code_templates/entity.html")
 	// 初始化表单引擎
 	fe := &form.Engine{}
 	for _, tb := range tables {
 		entityPath := genDir + "model/" + tb.Name + ".go"
-		iRepPath := genDir + "repo/auto_i" + tb.Name + "_repo.go"
+		iRepPath := genDir + "repo/auto_iface_" + tb.Name + "_repo.go"
 		repPath := genDir + "repo/auto_" + tb.Name + "_repo.go"
 		dslPath := genDir + "form/" + tb.Name + ".form"
 		htmPath := genDir + "html/" + tb.Name + ".html"
-
 		//生成实体
 		str := dg.TableToGoStruct(tb)
 		generator.SaveFile(str, entityPath)
@@ -86,9 +90,7 @@ func main() {
 
 	//格式化代码
 	shell.Run("gofmt -w " + genDir)
-
-	//t.Log("生成成功")
-	log.Println("----")
+	log.Println("生成成功")
 }
 
 // 获取数据库连接
@@ -101,11 +103,11 @@ func getDb(r *gof.Registry) *sql.DB {
 	if dbCharset == "" {
 		dbCharset = "utf8"
 	}
-	connStr := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&loc=Local",
+	connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&loc=Local",
 		r.GetString(prefix+".user"),
 		r.GetString(prefix+".pwd"),
 		r.GetString(prefix+".server"),
-		r.Get(prefix+".port").(int64),
+		r.Get(prefix + ".port").(int64),
 		r.GetString(prefix+".name"),
 		dbCharset,
 	)
