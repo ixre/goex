@@ -69,20 +69,20 @@ type (
 		Comment string
 	}
 )
-type toolSession struct {
+type Session struct {
 	//生成代码变量
 	codeVars map[string]interface{}
 	IdUpper  bool
 }
 
 // 数据库代码生成器
-func DBCodeGenerator() *toolSession {
-	return (&toolSession{
+func DBCodeGenerator() *Session {
+	return (&Session{
 		codeVars: make(map[string]interface{}),
 	}).init()
 }
 
-func (ts *toolSession) init() *toolSession {
+func (ts *Session) init() *Session {
 	ts.Var(V_ModelPkgName, "model")
 	ts.Var(V_RepoPkgName, "repo")
 	ts.Var(V_IRepoPkgName, "repo")
@@ -92,7 +92,7 @@ func (ts *toolSession) init() *toolSession {
 	return ts
 }
 
-func (ts *toolSession) title(str string) string {
+func (ts *Session) title(str string) string {
 	// 小于3且ID大写，则返回大写
 	if ts.IdUpper && len(str) < 3 {
 		return strings.ToUpper(str)
@@ -104,7 +104,7 @@ func (ts *toolSession) title(str string) string {
 	return strings.Join(arr, "")
 }
 
-func (ts *toolSession) prefix(str string) string {
+func (ts *Session) prefix(str string) string {
 	if i := strings.Index(str, "_"); i != -1 {
 		return str[:i]
 	}
@@ -116,7 +116,7 @@ func (ts *toolSession) prefix(str string) string {
 	return ""
 }
 
-func (ts *toolSession) goType(dbType string) string {
+func (ts *Session) goType(dbType string) string {
 	l := len(dbType)
 	switch true {
 	case strings.HasPrefix(dbType, "tinyint"):
@@ -139,7 +139,7 @@ func (ts *toolSession) goType(dbType string) string {
 }
 
 // 获取所有的表
-func (ts *toolSession) ParseTables(tbs []*orm.Table, err error) ([]*Table, error) {
+func (ts *Session) ParseTables(tbs []*orm.Table, err error) ([]*Table, error) {
 	n := make([]*Table, len(tbs))
 	for i, tb := range tbs {
 		n[i] = ts.ParseTable(tb)
@@ -148,7 +148,7 @@ func (ts *toolSession) ParseTables(tbs []*orm.Table, err error) ([]*Table, error
 }
 
 // 获取表结构
-func (ts *toolSession) ParseTable(tb *orm.Table) *Table {
+func (ts *Session) ParseTable(tb *orm.Table) *Table {
 	n := &Table{
 		Name:    tb.Name,
 		Prefix:  ts.prefix(tb.Name),
@@ -174,7 +174,7 @@ func (ts *toolSession) ParseTable(tb *orm.Table) *Table {
 }
 
 // 表生成结构
-func (ts *toolSession) TableToGoStruct(tb *Table) string {
+func (ts *Session) TableToGoStruct(tb *Table) string {
 	if tb == nil {
 		return ""
 	}
@@ -225,13 +225,13 @@ func (ts *toolSession) TableToGoStruct(tb *Table) string {
 }
 
 // 解析模板
-func (ts *toolSession) Resolve(t CodeTemplate) CodeTemplate {
+func (ts *Session) Resolve(t CodeTemplate) CodeTemplate {
 	t = resolveRepTag(t)
 	return t
 }
 
 // 定义变量或修改变量
-func (ts *toolSession) Var(key string, v interface{}) {
+func (ts *Session) Var(key string, v interface{}) {
 	if v == nil {
 		delete(ts.codeVars, key)
 		return
@@ -245,12 +245,12 @@ func (ts *toolSession) Var(key string, v interface{}) {
 }
 
 // 还原模板的标签: ${...} -> {{...}}
-func (ts *toolSession) revertTemplateVariable(str string) string {
+func (ts *Session) revertTemplateVariable(str string) string {
 	return revertTemplateRegexp.ReplaceAllString(str, "{{$1}}")
 }
 
 // 转换成为模板
-func (ts *toolSession) ParseTemplate(file string) (CodeTemplate, error) {
+func (ts *Session) ParseTemplate(file string) (CodeTemplate, error) {
 	data, err := ioutil.ReadFile(file)
 	if err == nil {
 		return CodeTemplate(string(data)), nil
@@ -259,7 +259,7 @@ func (ts *toolSession) ParseTemplate(file string) (CodeTemplate, error) {
 }
 
 // 生成代码
-func (ts *toolSession) GenerateCode(tb *Table, tpl CodeTemplate,
+func (ts *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 	structSuffix string, sign bool, ePrefix string) string {
 	if tb == nil {
 		return ""
@@ -311,7 +311,7 @@ func (ts *toolSession) GenerateCode(tb *Table, tpl CodeTemplate,
 	return ""
 }
 
-func (ts *toolSession) GenerateTablesCode(tables []*Table, tpl CodeTemplate) string {
+func (ts *Session) GenerateTablesCode(tables []*Table, tpl CodeTemplate) string {
 	if tables == nil || len(tables) == 0 {
 		return ""
 	}
@@ -341,14 +341,14 @@ func (ts *toolSession) GenerateTablesCode(tables []*Table, tpl CodeTemplate) str
 }
 
 // 表生成仓储结构,sign:函数后是否带签名，ePrefix:实体是否带前缀
-func (ts *toolSession) TableToGoRepo(tb *Table,
+func (ts *Session) TableToGoRepo(tb *Table,
 	sign bool, ePrefix string) string {
 	return ts.GenerateCode(tb, TPL_ENTITY_REP,
 		"Repo", sign, ePrefix)
 }
 
 // 表生成仓库仓储接口
-func (ts *toolSession) TableToGoIRepo(tb *Table,
+func (ts *Session) TableToGoIRepo(tb *Table,
 	sign bool, ePrefix string) string {
 	return ts.GenerateCode(tb, TPL_ENTITY_REP_INTERFACE,
 		"Repo", sign, ePrefix)
