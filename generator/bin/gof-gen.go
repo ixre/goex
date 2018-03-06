@@ -23,16 +23,19 @@ func main() {
 	var tplDir string   //模板目录
 	var table string
 	var arch string //代码架构
-	flag.StringVar(&genDir, "out", "generated_code/", "path of output directory")
-	flag.StringVar(&tplDir, "tpl", "code_templates", "path of code templates directory")
+	var debug bool
+	flag.StringVar(&genDir, "out", "./generated_code/", "path of output directory")
+	flag.StringVar(&tplDir, "tpl", "./code_templates", "path of code templates directory")
 	flag.StringVar(&confPath, "conf", "./", "config path")
 	flag.StringVar(&table, "table", "", "table name or table prefix")
 	flag.StringVar(&arch, "arch", "", "program language")
+	flag.BoolVar(&debug, "debug", false, "debug mode")
 	flag.Parse()
 
 	registry, err := gof.NewRegistry(confPath, ".")
 	if err != nil {
-		panic(err)
+		log.Println("[ Gen][ Fail]:", err.Error())
+		return
 	}
 	dbName := registry.GetString("gen.database.name")
 	// 初始化生成器
@@ -43,6 +46,7 @@ func main() {
 	// 获取表格并转换
 	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, table))
 	if err != nil {
+		log.Println("[ Gen][ Fail]:", err.Error())
 		return
 	}
 	beforeRun := strings.TrimSpace(registry.GetString("gen.command.before"))
@@ -78,12 +82,16 @@ func main() {
 }
 func genCode(s *generator.Session, tables []*generator.Table, genDir string, tplDir string) error {
 	tplMap := map[string]generator.CodeTemplate{}
-	sliceSize := len(tplDir)
+	sliceSize := len(tplDir)-1
+	if tplDir[sliceSize] == '/' {
+		tplDir = tplDir + "/"
+		sliceSize += 1
+	}
 	err := filepath.Walk(tplDir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			tp, err := s.ParseTemplate(path)
 			if err == nil {
-				tplMap[path[sliceSize+1:]] = tp
+				tplMap[path[sliceSize:]] = tp
 			}
 			return err
 		}
@@ -98,7 +106,7 @@ func genCode(s *generator.Session, tables []*generator.Table, genDir string, tpl
 	for _, tb := range tables {
 		for path, tpl := range tplMap {
 			str := s.GenerateCode(tb, tpl, "", true, "")
-			generator.SaveFile(str, genDir+joinFilePath(path, tb.Name))
+			generator.SaveFile(str, genDir+"/"+joinFilePath(path, tb.Name))
 		}
 	}
 	return err
