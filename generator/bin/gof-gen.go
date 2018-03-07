@@ -82,7 +82,7 @@ func main() {
 }
 func genCode(s *generator.Session, tables []*generator.Table, genDir string, tplDir string) error {
 	tplMap := map[string]generator.CodeTemplate{}
-	sliceSize := len(tplDir)-1
+	sliceSize := len(tplDir) - 1
 	if tplDir[sliceSize] == '/' {
 		tplDir = tplDir + "/"
 		sliceSize += 1
@@ -187,7 +187,7 @@ func getDb(r *gof.Registry) *sql.DB {
 		r.GetString(prefix+".user"),
 		r.GetString(prefix+".pwd"),
 		r.GetString(prefix+".server"),
-		r.Get(prefix + ".port").(int64),
+		r.Get(prefix+".port").(int64),
 		r.GetString(prefix+".name"),
 		dbCharset,
 	)
