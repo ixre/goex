@@ -66,11 +66,11 @@ func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interfac
 
 func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, total int, err error) {
 	if e == nil || e.dbProvider == nil {
-		return nil, 0, errors.New("no such export item")
+		return nil, 0, errors.New("no such db provider¬")
 	}
 	total = 0
-	var _rows *sql.Rows
-	_db := e.dbProvider.GetDB()
+	var sqlRows *sql.Rows
+	sqlDb := e.dbProvider.GetDB()
 
 	//初始化添加参数
 	if _, e := p["pageSize"]; !e {
@@ -79,12 +79,12 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	if _, e := p["pageIndex"]; !e {
 		p["pageIndex"] = "1"
 	}
-
+	// 获取页码和每页加载数量
 	pi, _ := p["pageIndex"]
 	ps, _ := p["pageSize"]
 	pageIndex, _ := strconv.Atoi(pi)
 	pageSize, _ := strconv.Atoi(ps)
-
+	// 设置SQL分页信息
 	if pageIndex > 0 {
 		p["page_start"] = strconv.Itoa((pageIndex - 1) * pageSize)
 	} else {
@@ -96,7 +96,7 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	//统计总行数
 	if e.sqlConfig.Total != "" {
 		sql := SqlFormat(e.sqlConfig.Total, p)
-		smt, err := _db.Prepare(sql)
+		smt, err := sqlDb.Prepare(sql)
 		if err == nil {
 			row := smt.QueryRow()
 			smt.Close()
@@ -114,11 +114,12 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	if e.sqlConfig.Query != "" {
 		sql := SqlFormat(e.sqlConfig.Query, p)
 		//log.Println("-----",sql)
+		// 如果包含了多条SQL,那么执行前面SQL语句，查询最后一条语句返回数据
 		sqlLines := strings.Split(sql, ";\n")
 		if t := len(sqlLines); t > 1 {
 			for i, v := range sqlLines {
 				if i != t-1 {
-					smt, err := _db.Prepare(v)
+					smt, err := sqlDb.Prepare(v)
 					if err == nil {
 						smt.Exec()
 						smt.Close()
@@ -128,13 +129,13 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 			sql = sqlLines[t-1]
 		}
 
-		smt, err := _db.Prepare(sql)
+		smt, err := sqlDb.Prepare(sql)
 		if err == nil {
 			defer smt.Close()
-			_rows, err = smt.Query()
+			sqlRows, err = smt.Query()
 			if err == nil {
-				data := db.RowsToMarshalMap(_rows)
-				_rows.Close()
+				data := db.RowsToMarshalMap(sqlRows)
+				sqlRows.Close()
 				return data, total, err
 			}
 		}
@@ -155,8 +156,7 @@ func (e *ExportItem) GetJsonData(ht map[string]string) string {
 func (e *ExportItem) Export(parameters *ExportParams,
 	provider IExportProvider, formatter IExportFormatter) []byte {
 	rows, _, _ := e.GetSchemaAndData(parameters.Params)
-	names := e.GetExportColumnNames(
-		parameters.ExportFields)
+	names := e.GetExportColumnNames(parameters.ExportFields)
 	fmtArray := []IExportFormatter{interFmt}
 	if formatter != nil {
 		fmtArray = append(fmtArray, formatter)
@@ -188,12 +188,11 @@ func NewExportManager(db IDbProvider, rootPath string) *ExportItemManager {
 	}
 }
 
-//获取导出项
+// 获取导出项
 func (manager *ExportItemManager) GetExportItem(portalKey string) IDataExportPortal {
 	item, exist := manager.exportItems[portalKey]
 	if !exist {
-		item = manager.loadExportItem(portalKey,
-			manager.DbGetter)
+		item = manager.loadExportItem(portalKey, manager.DbGetter)
 		if !WATCH_CONF_FILE {
 			manager.exportItems[portalKey] = item
 		}

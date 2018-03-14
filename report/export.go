@@ -25,6 +25,7 @@ var (
 )
 
 type (
+	// 数据库提供者
 	IDbProvider interface {
 		//获取数据库连接
 		GetDB() *sql.DB
@@ -71,6 +72,7 @@ type (
 	}
 	// 数据格式化器
 	IExportFormatter interface {
+		// 格式化字段
 		Format(field, name string, rowNum int, data interface{}) interface{}
 	}
 
@@ -121,7 +123,7 @@ func parseColumnMapping(str string) []ColumnMapping {
 	if err != nil {
 		return nil
 	}
-	var matches [][]string = re.FindAllStringSubmatch(str, -1)
+	var matches = re.FindAllStringSubmatch(str, -1)
 	if matches == nil {
 		return nil
 	}
