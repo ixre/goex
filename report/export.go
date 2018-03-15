@@ -21,8 +21,7 @@ import (
 )
 
 var (
-	WATCH_CONF_FILE = false
-	interFmt        = &internalFormatter{}
+	interFmt      = &internalFormatter{}
 	errNoSuchItem = errors.New("no such item")
 )
 
