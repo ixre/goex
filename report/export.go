@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	_ "database/sql"
 	"encoding/xml"
+	"errors"
 	"io/ioutil"
 	"net/url"
 	"regexp"
@@ -22,6 +23,7 @@ import (
 var (
 	WATCH_CONF_FILE = false
 	interFmt        = &internalFormatter{}
+	errNoSuchItem = errors.New("no such item")
 )
 
 type (
@@ -109,11 +111,11 @@ func (p Params) CopyForm(form url.Values) {
 //获取列映射数组
 func readItemConfigFromXml(xmlFilePath string) (*ItemConfig, error) {
 	var cfg ItemConfig
-	content, _err := ioutil.ReadFile(xmlFilePath)
-	if _err != nil {
-		return &ItemConfig{}, _err
+	content, err := ioutil.ReadFile(xmlFilePath)
+	if err != nil {
+		return &ItemConfig{}, err
 	}
-	err := xml.Unmarshal(content, &cfg)
+	err = xml.Unmarshal(content, &cfg)
 	return &cfg, err
 }
 
