@@ -2,7 +2,7 @@
 *.o
 *.a
 *.so
-
+.DS_Store
 # Folders
 _obj
 _test
@@ -22,3 +22,4 @@ _testmain.go
 *.exe
 *.test
 *.prof
+generated_code

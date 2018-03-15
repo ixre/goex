@@ -16,7 +16,7 @@ func getFileName(p *ExportItem) string {
 }
 
 // 生成WEB导出勾选项及脚本
-func BuildWebExportCheckOptions(p IDataExportPortal, token string) string {
+func buildWebExportCheckOptions(p IDataExportPortal, token string) string {
 	portal := p.(*ExportItem)
 	buf := bytes.NewBufferString("")
 	fileName := getFileName(portal)

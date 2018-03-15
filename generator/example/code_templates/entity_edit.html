@@ -5,7 +5,6 @@
     ${.Var.Header}
 </head>
 <body>
-
 <form action="" method="post" class="gra-form" id="form1">
     {{range $i,$c := .T.Columns}}{{if $c.Pk}}
     <input type="hidden" field="{{$c.Title}}" name="{{$c.Title}}" value="0"/>{{else}}

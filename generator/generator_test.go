@@ -8,7 +8,9 @@
  */
 package generator
 
-import "testing"
+import (
+	"testing"
+)
 
 type testStruct struct {
 	Id      int
@@ -39,4 +41,12 @@ func TestStructAssignCode(t *testing.T) {
 	} else {
 		t.Logf("生成代码如下:\n\n" + string(data) + "\n\n")
 	}
+}
+
+func TestGenByTemplate(t *testing.T) {
+	dg := DBCodeGenerator()
+	str := "s$${x}"
+	result := dg.GenerateCode(&Table{Name: "Person"},
+		CodeTemplate(str), "", true, "")
+	t.Log("--", result)
 }

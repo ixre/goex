@@ -66,11 +66,11 @@ func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interfac
 
 func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, total int, err error) {
 	if e == nil || e.dbProvider == nil {
-		return nil, 0, errors.New("no such export item")
+		return nil, 0, errors.New("no such db provider¬")
 	}
 	total = 0
-	var _rows *sql.Rows
-	_db := e.dbProvider.GetDB()
+	var sqlRows *sql.Rows
+	sqlDb := e.dbProvider.GetDB()
 
 	//初始化添加参数
 	if _, e := p["pageSize"]; !e {
@@ -79,12 +79,12 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	if _, e := p["pageIndex"]; !e {
 		p["pageIndex"] = "1"
 	}
-
+	// 获取页码和每页加载数量
 	pi, _ := p["pageIndex"]
 	ps, _ := p["pageSize"]
 	pageIndex, _ := strconv.Atoi(pi)
 	pageSize, _ := strconv.Atoi(ps)
-
+	// 设置SQL分页信息
 	if pageIndex > 0 {
 		p["page_start"] = strconv.Itoa((pageIndex - 1) * pageSize)
 	} else {
@@ -96,7 +96,7 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	//统计总行数
 	if e.sqlConfig.Total != "" {
 		sql := SqlFormat(e.sqlConfig.Total, p)
-		smt, err := _db.Prepare(sql)
+		smt, err := sqlDb.Prepare(sql)
 		if err == nil {
 			row := smt.QueryRow()
 			smt.Close()
@@ -106,44 +106,49 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 		}
 		if err != nil {
 			log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-			return nil, 0, err
+			return make([]map[string]interface{}, 0), 0, err
+		}
+		// 没有结果，直接返回
+		if total == 0 {
+			return make([]map[string]interface{}, 0), total, err
 		}
 	}
-
-	//获得数据
-	if e.sqlConfig.Query != "" {
-		sql := SqlFormat(e.sqlConfig.Query, p)
-		//log.Println("-----",sql)
-		sqlLines := strings.Split(sql, ";\n")
-		if t := len(sqlLines); t > 1 {
-			for i, v := range sqlLines {
-				if i != t-1 {
-					smt, err := _db.Prepare(v)
-					if err == nil {
-						smt.Exec()
-						smt.Close()
-					}
+	// 获得数据
+	if e.sqlConfig.Query == "" {
+		return make([]map[string]interface{}, 0), total,
+			errors.New("no such query of item; key:" + e.PortalKey)
+	}
+	sql := SqlFormat(e.sqlConfig.Query, p)
+	//log.Println("-----",sql)
+	// 如果包含了多条SQL,那么执行前面SQL语句，查询最后一条语句返回数据
+	sqlLines := strings.Split(sql, ";\n")
+	if t := len(sqlLines); t > 1 {
+		for i, v := range sqlLines {
+			if i != t-1 {
+				smt, err := sqlDb.Prepare(v)
+				if err == nil {
+					smt.Exec()
+					smt.Close()
 				}
 			}
-			sql = sqlLines[t-1]
 		}
-
-		smt, err := _db.Prepare(sql)
-		if err == nil {
-			defer smt.Close()
-			_rows, err = smt.Query()
-			if err == nil {
-				data := db.RowsToMarshalMap(_rows)
-				_rows.Close()
-				return data, total, err
-			}
-		}
-		log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
+		sql = sqlLines[t-1]
 	}
+	smt, err := sqlDb.Prepare(sql)
+	if err == nil {
+		defer smt.Close()
+		sqlRows, err = smt.Query()
+		if err == nil {
+			data := db.RowsToMarshalMap(sqlRows)
+			sqlRows.Close()
+			return data, total, err
+		}
+	}
+	log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
 	return nil, total, err
 }
 
-//获取要导出的数据Json格式
+// 获取要导出的数据Json格式
 func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	result, err := json.Marshal(nil)
 	if err != nil {
@@ -152,11 +157,11 @@ func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	return string(result)
 }
 
+// 导出数据
 func (e *ExportItem) Export(parameters *ExportParams,
 	provider IExportProvider, formatter IExportFormatter) []byte {
 	rows, _, _ := e.GetSchemaAndData(parameters.Params)
-	names := e.GetExportColumnNames(
-		parameters.ExportFields)
+	names := e.GetExportColumnNames(parameters.ExportFields)
 	fmtArray := []IExportFormatter{interFmt}
 	if formatter != nil {
 		fmtArray = append(fmtArray, formatter)
@@ -164,57 +169,63 @@ func (e *ExportItem) Export(parameters *ExportParams,
 	return provider.Export(rows, parameters.ExportFields, names, fmtArray)
 }
 
-//导出项管理器
-type ExportItemManager struct {
+//导出项工厂
+type ItemManager struct {
 	//配置存放路径
-	RootPath string
+	rootPath string
 	//配置扩展名
-	CfgFileExt string
+	cfgFileExt string
 	//数据库连接
-	DbGetter IDbProvider //接口类型不需要加*
+	dbGetter IDbProvider //接口类型不需要加*
 	//导出项集合
 	exportItems map[string]*ExportItem
+	// 是否缓存配置项文件
+	cacheFiles bool
 }
 
-func NewExportManager(db IDbProvider, rootPath string) *ExportItemManager {
+// 新建导出项目管理器
+func NewItemManager(db IDbProvider, rootPath string, cacheFiles bool) *ItemManager {
 	if rootPath == "" {
 		rootPath = "/query/"
 	}
-	return &ExportItemManager{
-		DbGetter:    db,
-		RootPath:    rootPath,
-		CfgFileExt:  ".xml",
+	if rootPath[len(rootPath)-1] != '/' {
+		rootPath += "/"
+	}
+	return &ItemManager{
+		dbGetter:    db,
+		rootPath:    rootPath,
+		cfgFileExt:  ".xml",
 		exportItems: make(map[string]*ExportItem),
+		cacheFiles:  cacheFiles,
 	}
 }
 
-//获取导出项
-func (manager *ExportItemManager) GetExportItem(portalKey string) IDataExportPortal {
-	item, exist := manager.exportItems[portalKey]
+// 获取导出项
+func (f *ItemManager) GetItem(portalKey string) IDataExportPortal {
+	item, exist := f.exportItems[portalKey]
 	if !exist {
-		item = manager.loadExportItem(portalKey,
-			manager.DbGetter)
-		if !WATCH_CONF_FILE {
-			manager.exportItems[portalKey] = item
+		item = f.loadExportItem(portalKey, f.dbGetter)
+		if f.cacheFiles {
+			f.exportItems[portalKey] = item
 		}
 	}
 	return item
 }
 
 // 创建导出项,watch：是否监视文件变化
-func (manager *ExportItemManager) loadExportItem(portalKey string,
-	dbp IDbProvider) *ExportItem {
+func (f *ItemManager) loadExportItem(portalKey string,
+	db IDbProvider) *ExportItem {
 	dir, _ := os.Getwd()
-	arr := []string{dir, manager.RootPath, portalKey, manager.CfgFileExt}
+	arr := []string{dir, f.rootPath, portalKey, f.cfgFileExt}
 	filePath := strings.Join(arr, "")
-	f, err := os.Stat(filePath)
-	if err == nil && f.IsDir() == false {
+	fi, err := os.Stat(filePath)
+	if err == nil && fi.IsDir() == false {
 		cfg, err1 := readItemConfigFromXml(filePath)
 		if err1 == nil {
 			return &ExportItem{
 				sqlConfig:  cfg,
 				PortalKey:  portalKey,
-				dbProvider: dbp,
+				dbProvider: db,
 			}
 		}
 		err = err1
@@ -223,4 +234,29 @@ func (manager *ExportItemManager) loadExportItem(portalKey string,
 		log.Println("[ Export][ Error]:", err.Error(), "; portal:", portalKey)
 	}
 	return nil
+}
+
+// 获取导出数据
+func (f *ItemManager) GetExportData(portal string, p Params, page string,
+	rows string) (data []map[string]interface{}, total int, err error) {
+	exportItem := f.GetItem(portal)
+	if exportItem != nil {
+		if page != "" {
+			p["pageIndex"] = page
+		}
+		if rows != "" {
+			p["pageSize"] = rows
+		}
+		return exportItem.GetSchemaAndData(p)
+	}
+	return make([]map[string]interface{}, 0), 0, errNoSuchItem
+}
+
+// 获取导出列勾选项
+func (f *ItemManager) GetWebExportCheckOptions(portal string, token string) (string, error) {
+	p := f.GetItem(portal)
+	if p == nil {
+		return "", errNoSuchItem
+	}
+	return buildWebExportCheckOptions(p, token), nil
 }
