@@ -51,9 +51,13 @@ type (
 		Title string
 		// 表注释
 		Comment string
+		// 数据库引擎
 		Engine  string
+		// 数据库编码
 		Charset string
+		// 表
 		Raw     *orm.Table
+		// 列
 		Columns []*Column
 	}
 	// 列
@@ -62,23 +66,31 @@ type (
 		Name string
 		// 表名首字大写
 		Title   string
+		// 是否主键
 		Pk      bool
+		// 是否自动生成
 		Auto    bool
+		// 是否不能为空
 		NotNull bool
+		// 类型
 		Type    string
+		// 注释
 		Comment string
 	}
 )
 type Session struct {
-	//生成代码变量
+	// 生成代码变量
 	codeVars map[string]interface{}
-	IdUpper  bool
+	// 模板函数
+	funcMap map[string]interface{}
+	IdUpper bool
 }
 
 // 数据库代码生成器
 func DBCodeGenerator() *Session {
 	return (&Session{
 		codeVars: make(map[string]interface{}),
+		funcMap:  (&internalTemplateFunc{}).funcMap(),
 	}).init()
 }
 
@@ -230,6 +242,11 @@ func (s *Session) Resolve(t CodeTemplate) CodeTemplate {
 	return t
 }
 
+// 添加函数
+func (s *Session) Func(funcName string, f interface{}) {
+	s.funcMap[funcName] = f
+}
+
 // 定义变量或修改变量
 func (s *Session) Var(key string, v interface{}) {
 	if v == nil {
@@ -268,11 +285,11 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 
 	var err error
 	t := &template.Template{}
+	t.Funcs(s.funcMap)
 	t, err = t.Parse(string(tpl))
 	if err != nil {
 		panic(err)
 	}
-
 	pk := "<PK>"
 	for i, v := range tb.Columns {
 		if i == 0 {
@@ -316,9 +333,9 @@ func (s *Session) GenerateTablesCode(tables []*Table, tpl CodeTemplate) string {
 	if tables == nil || len(tables) == 0 {
 		return ""
 	}
-
 	var err error
 	t := &template.Template{}
+	t.Funcs(s.funcMap)
 	t, err = t.Parse(string(tpl))
 	if err != nil {
 		panic(err)

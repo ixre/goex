@@ -18,20 +18,27 @@ import (
 )
 
 func main() {
+	var version = "1.0.1"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
 	var table string
 	var arch string //代码架构
 	var debug bool
+	var printVer bool
+
 	flag.StringVar(&genDir, "out", "./generated_code/", "path of output directory")
 	flag.StringVar(&tplDir, "tpl", "./code_templates", "path of code templates directory")
 	flag.StringVar(&confPath, "conf", "./", "config path")
 	flag.StringVar(&table, "table", "", "table name or table prefix")
 	flag.StringVar(&arch, "arch", "", "program language")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
+	flag.BoolVar(&printVer,"v",false,"print version")
 	flag.Parse()
-
+	if printVer{
+		fmt.Println("GofGenerator v"+version)
+		return
+	}
 	registry, err := gof.NewRegistry(confPath, ".")
 	if err != nil {
 		log.Println("[ Gen][ Fail]:", err.Error())
