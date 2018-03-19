@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	var version = "1.0.1"
+	var version = "1.0.2"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -33,10 +33,10 @@ func main() {
 	flag.StringVar(&table, "table", "", "table name or table prefix")
 	flag.StringVar(&arch, "arch", "", "program language")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
-	flag.BoolVar(&printVer,"v",false,"print version")
+	flag.BoolVar(&printVer, "v", false, "print version")
 	flag.Parse()
-	if printVer{
-		fmt.Println("GofGenerator v"+version)
+	if printVer {
+		fmt.Println("GofGenerator v" + version)
 		return
 	}
 	registry, err := gof.NewRegistry(confPath, ".")
@@ -44,6 +44,7 @@ func main() {
 		log.Println("[ Gen][ Fail]:", err.Error())
 		return
 	}
+	defer crashRecover()
 	dbName := registry.GetString("gen.database.name")
 	// 初始化生成器
 	d := &orm.MySqlDialect{}
@@ -67,26 +68,74 @@ func main() {
 		}
 	}
 	// 生成代码
-	switch arch {
-	case "repo":
-		genGoCode(dg, tables, genDir, tplDir, err)
-	default:
-		err = genCode(dg, tables, genDir, tplDir)
-	}
+	err = genByArch(arch, dg, tables, genDir, tplDir)
 	if err != nil {
 		log.Println("[ Gen][ Fail]:", err.Error())
-	} else {
-		// 生成之后执行操作
-		if afterRun != "" {
-			_, _, err = shell.StdRun(afterRun)
-			if err != nil {
-				log.Println("[ Gen][ Fail]:", err.Error())
-				return
-			}
+		return
+	}
+	// 生成之后执行操作
+	if afterRun != "" {
+		_, _, err = shell.StdRun(afterRun)
+		if err != nil {
+			log.Println("[ Gen][ Fail]:", err.Error())
+			return
 		}
 	}
 	log.Println("[ Gen][ Success]: generate successfully!")
 }
+
+// 根据规则生成代码
+func genByArch(arch string, dg *generator.Session, tables []*generator.Table,
+	genDir string, tplDir string) error {
+	// 生成代码
+	switch arch {
+	case "repo":
+		return genGoCode(dg, tables, genDir, tplDir)
+	default:
+		return genCode(dg, tables, genDir, tplDir)
+	}
+	return nil
+}
+
+// 获取数据库连接
+func getDb(r *gof.Registry) *sql.DB {
+	//数据库连接字符串
+	//root@tcp(127.0.0.1:3306)/db_name?charset=utf8
+	var prefix = "gen.database"
+	driver := r.GetString(prefix + ".driver")
+	dbCharset := r.GetString(prefix + ".charset")
+	if dbCharset == "" {
+		dbCharset = "utf8"
+	}
+	connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&loc=Local",
+		r.GetString(prefix+".user"),
+		r.GetString(prefix+".pwd"),
+		r.GetString(prefix+".server"),
+		r.Get(prefix+".port").(int64),
+		r.GetString(prefix+".name"),
+		dbCharset,
+	)
+	db, err := sql.Open(driver, connStr)
+	if err == nil {
+		db.SetMaxIdleConns(10)
+		db.SetMaxIdleConns(5)
+		db.SetConnMaxLifetime(time.Second * 10)
+		err = db.Ping()
+	}
+	if err != nil {
+		defer db.Close()
+		panic(err)
+		return nil
+	}
+	return db
+}
+
+// 恢复应用
+func crashRecover() {
+	fmt.Println(fmt.Sprintf("[ Gen][ Error]: %v", recover()))
+}
+
+// 生成代码
 func genCode(s *generator.Session, tables []*generator.Table, genDir string, tplDir string) error {
 	tplMap := map[string]generator.CodeTemplate{}
 	sliceSize := len(tplDir) - 1
@@ -118,6 +167,8 @@ func genCode(s *generator.Session, tables []*generator.Table, genDir string, tpl
 	}
 	return err
 }
+
+// 连接文件路径
 func joinFilePath(path string, tableName string) string {
 	i := strings.Index(path, ".")
 	if i != -1 {
@@ -126,19 +177,21 @@ func joinFilePath(path string, tableName string) string {
 	return path + tableName
 }
 
+// 生成Go代码
 func genGoCode(dg *generator.Session, tables []*generator.Table,
-	genDir string, tplDir string, err error) {
+	genDir string, tplDir string) error {
 	// 设置变量
-	dg.Var(generator.V_ModelPkg, "xupms/src/model")
-	dg.Var(generator.V_ModelPkgName, "model")
-	dg.Var(generator.V_IRepoPkg, "xupms/src/repo")
-	dg.Var(generator.V_IRepoPkgName, "repo")
-	dg.Var(generator.V_RepoPkg, "xupms/src/repo")
-	dg.Var(generator.V_RepoPkgName, "repo")
+	dg.Var(generator.VModelPkg, "xupms/src/model")
+	dg.Var(generator.VModelPkgName, "model")
+	dg.Var(generator.VIRepoPkg, "xupms/src/repo")
+	dg.Var(generator.VIRepoPkgName, "repo")
+	dg.Var(generator.VRepoPkg, "xupms/src/repo")
+	dg.Var(generator.VRepoPkgName, "repo")
 	// 读取自定义模板
 	listTP, _ := dg.ParseTemplate(tplDir + "/grid_list.html")
 	editTP, _ := dg.ParseTemplate(tplDir + "/entity_edit.html")
 	ctrTpl, _ := dg.ParseTemplate(tplDir + "/entity.html")
+	var err error
 	// 初始化表单引擎
 	fe := &form.Engine{}
 	for _, tb := range tables {
@@ -163,6 +216,9 @@ func genGoCode(dg *generator.Session, tables []*generator.Table,
 		if err == nil {
 			_, err = fe.SaveHtmlForm(f, form.TDefaultFormHtml, htmPath)
 		}
+		if err != nil {
+			return err
+		}
 		// 生成列表文件
 		str = dg.GenerateCode(tb, listTP, "", true, "")
 		generator.SaveFile(str, genDir+"html_list/"+tb.Name+"_list.html")
@@ -178,37 +234,5 @@ func genGoCode(dg *generator.Session, tables []*generator.Table,
 	generator.SaveFile(code, genDir+"repo/auto_repo_factory.go")
 	//格式化代码
 	shell.Run("gofmt -w " + genDir)
-}
-
-// 获取数据库连接
-func getDb(r *gof.Registry) *sql.DB {
-	//数据库连接字符串
-	//root@tcp(127.0.0.1:3306)/db_name?charset=utf8
-	var prefix = "gen.database"
-	driver := r.GetString(prefix + ".driver")
-	dbCharset := r.GetString(prefix + ".charset")
-	if dbCharset == "" {
-		dbCharset = "utf8"
-	}
-	connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&loc=Local",
-		r.GetString(prefix+".user"),
-		r.GetString(prefix+".pwd"),
-		r.GetString(prefix+".server"),
-		r.Get(prefix+".port").(int64),
-		r.GetString(prefix+".name"),
-		dbCharset,
-	)
-	db, err := sql.Open(driver, connStr)
-	if err == nil {
-		db.SetMaxIdleConns(10)
-		db.SetMaxIdleConns(5)
-		db.SetConnMaxLifetime(time.Second * 10)
-		err = db.Ping()
-	}
-	if err != nil {
-		defer db.Close()
-		log.Println("[ Gof][ MySQL] " + err.Error())
-		return nil
-	}
-	return db
+	return err
 }

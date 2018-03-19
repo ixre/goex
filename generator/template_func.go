@@ -7,16 +7,17 @@ import (
 	"unicode"
 )
 
-type internalTemplateFunc struct {
+type internalFunc struct {
 }
 
 // 返回模板函数
-func (t *internalTemplateFunc) funcMap() ht.FuncMap {
+func (t *internalFunc) funcMap() ht.FuncMap {
 	fm := make(map[string]interface{})
 	fm["boolInt"] = t.boolInt
 	fm["isEmpty"] = t.isEmpty
 	fm["rawHtml"] = t.rawHtml
-	fm["add"] = t.add
+	fm["add"] = t.plus
+	fm["plus"] = t.plus
 	fm["multi"] = t.multi
 	fm["mathRemain"] = t.mathRemain
 	fm["lowerTitle"] = t.lowerTitle
@@ -27,17 +28,17 @@ func (t *internalTemplateFunc) funcMap() ht.FuncMap {
 }
 
 // 小写
-func (t *internalTemplateFunc) lower(s string) string {
+func (t *internalFunc) lower(s string) string {
 	return strings.ToLower(s)
 }
 
 // 大写
-func (t *internalTemplateFunc) upper(s string) string {
+func (t *internalFunc) upper(s string) string {
 	return strings.ToUpper(s)
 }
 
 // 将首字母小写
-func (t *internalTemplateFunc) lowerTitle(s string) string {
+func (t *internalFunc) lowerTitle(s string) string {
 	if rune0 := rune(s[0]); unicode.IsUpper(rune0) {
 		return string(unicode.ToLower(rune0)) + s[1:]
 	}
@@ -45,22 +46,22 @@ func (t *internalTemplateFunc) lowerTitle(s string) string {
 }
 
 // 将字符串单词首字母大写
-func (t *internalTemplateFunc) title(s string) string {
+func (t *internalFunc) title(s string) string {
 	return strings.Title(s)
 }
 
 // 判断是否为true
-func (t *internalTemplateFunc) boolInt(i int32) bool {
+func (t *internalFunc) boolInt(i int32) bool {
 	return i > 0
 }
 
 // 加法
-func (t *internalTemplateFunc) add(x, y int) int {
+func (t *internalFunc) plus(x, y int) int {
 	return x + y
 }
 
 // 乘法
-func (t *internalTemplateFunc) multi(x, y interface{}) interface{} {
+func (t *internalFunc) multi(x, y interface{}) interface{} {
 	fx, ok := x.(float64)
 	if ok {
 		switch y.(type) {
@@ -80,12 +81,12 @@ func (t *internalTemplateFunc) multi(x, y interface{}) interface{} {
 }
 
 // I32转为字符
-func (t *internalTemplateFunc) str(i interface{}) string {
+func (t *internalFunc) str(i interface{}) string {
 	return util.Str(i)
 }
 
 // 是否为空
-func (t *internalTemplateFunc) isEmpty(s string) bool {
+func (t *internalFunc) isEmpty(s string) bool {
 	if s == "" {
 		return true
 	}
@@ -93,11 +94,11 @@ func (t *internalTemplateFunc) isEmpty(s string) bool {
 }
 
 // 转换为HTML
-func (t *internalTemplateFunc) rawHtml(v interface{}) ht.HTML {
+func (t *internalFunc) rawHtml(v interface{}) ht.HTML {
 	return ht.HTML(util.Str(v))
 }
 
 //求余
-func (t *internalTemplateFunc) mathRemain(i int, j int) int {
+func (t *internalFunc) mathRemain(i int, j int) int {
 	return i % j
 }

@@ -27,22 +27,24 @@ var (
 
 const (
 	//模型包名
-	V_ModelPkgName = "ModelPkgName"
+	VModelPkgName = "ModelPkgName"
 	//仓储结构包名
-	V_RepoPkgName = "RepoPkgName"
+	VRepoPkgName = "RepoPkgName"
 	//仓储接口包名
-	V_IRepoPkgName = "IRepoPkgName"
+	VIRepoPkgName = "IRepoPkgName"
 	//仓储结构引用模型包路径
-	V_ModelPkg = "ModelPkg"
+	VModelPkg = "ModelPkg"
 	//仓储接口引用模型包路径
-	V_IRepoPkg = "IRepoPkg"
+	VIRepoPkg = "IRepoPkg"
 	// 仓储包路径
-	V_RepoPkg = "RepoPkg"
+	VRepoPkg = "RepoPkg"
 )
 
 type (
 	// 表
 	Table struct {
+		// 顺序
+		Ordinal int
 		// 表名
 		Name string
 		// 表前缀
@@ -52,28 +54,30 @@ type (
 		// 表注释
 		Comment string
 		// 数据库引擎
-		Engine  string
+		Engine string
 		// 数据库编码
 		Charset string
 		// 表
-		Raw     *orm.Table
+		Raw *orm.Table
 		// 列
 		Columns []*Column
 	}
 	// 列
 	Column struct {
+		// 顺序
+		Ordinal int
 		// 表名
 		Name string
 		// 表名首字大写
-		Title   string
+		Title string
 		// 是否主键
-		Pk      bool
+		Pk bool
 		// 是否自动生成
-		Auto    bool
+		Auto bool
 		// 是否不能为空
 		NotNull bool
 		// 类型
-		Type    string
+		Type string
 		// 注释
 		Comment string
 	}
@@ -90,17 +94,17 @@ type Session struct {
 func DBCodeGenerator() *Session {
 	return (&Session{
 		codeVars: make(map[string]interface{}),
-		funcMap:  (&internalTemplateFunc{}).funcMap(),
+		funcMap:  (&internalFunc{}).funcMap(),
 	}).init()
 }
 
 func (s *Session) init() *Session {
-	s.Var(V_ModelPkgName, "model")
-	s.Var(V_RepoPkgName, "repo")
-	s.Var(V_IRepoPkgName, "repo")
-	s.Var(V_ModelPkg, "")
-	s.Var(V_IRepoPkg, "")
-	s.Var(V_RepoPkg, "")
+	s.Var(VModelPkgName, "model")
+	s.Var(VRepoPkgName, "repo")
+	s.Var(VIRepoPkgName, "repo")
+	s.Var(VModelPkg, "")
+	s.Var(VIRepoPkg, "")
+	s.Var(VRepoPkg, "")
 	return s
 }
 
@@ -154,13 +158,13 @@ func (s *Session) goType(dbType string) string {
 func (s *Session) ParseTables(tbs []*orm.Table, err error) ([]*Table, error) {
 	n := make([]*Table, len(tbs))
 	for i, tb := range tbs {
-		n[i] = s.ParseTable(tb)
+		n[i] = s.parseTable(i, tb)
 	}
 	return n, err
 }
 
 // 获取表结构
-func (s *Session) ParseTable(tb *orm.Table) *Table {
+func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 	n := &Table{
 		Name:    tb.Name,
 		Prefix:  s.prefix(tb.Name),
@@ -173,6 +177,7 @@ func (s *Session) ParseTable(tb *orm.Table) *Table {
 	}
 	for i, v := range tb.Columns {
 		n.Columns[i] = &Column{
+			Ordinal: i,
 			Name:    v.Name,
 			Title:   s.title(v.Name),
 			Pk:      v.Pk,
@@ -191,7 +196,7 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 		return ""
 	}
 	pkgName := ""
-	if p, ok := s.codeVars[V_ModelPkgName]; ok {
+	if p, ok := s.codeVars[VModelPkgName]; ok {
 		pkgName = p.(string)
 	} else {
 		pkgName = "model"
