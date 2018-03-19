@@ -27,22 +27,24 @@ var (
 
 const (
 	//模型包名
-	V_ModelPkgName = "ModelPkgName"
+	VModelPkgName = "ModelPkgName"
 	//仓储结构包名
-	V_RepoPkgName = "RepoPkgName"
+	VRepoPkgName = "RepoPkgName"
 	//仓储接口包名
-	V_IRepoPkgName = "IRepoPkgName"
+	VIRepoPkgName = "IRepoPkgName"
 	//仓储结构引用模型包路径
-	V_ModelPkg = "ModelPkg"
+	VModelPkg = "ModelPkg"
 	//仓储接口引用模型包路径
-	V_IRepoPkg = "IRepoPkg"
+	VIRepoPkg = "IRepoPkg"
 	// 仓储包路径
-	V_RepoPkg = "RepoPkg"
+	VRepoPkg = "RepoPkg"
 )
 
 type (
 	// 表
 	Table struct {
+		// 顺序
+		Ordinal int
 		// 表名
 		Name string
 		// 表前缀
@@ -51,44 +53,58 @@ type (
 		Title string
 		// 表注释
 		Comment string
-		Engine  string
+		// 数据库引擎
+		Engine string
+		// 数据库编码
 		Charset string
-		Raw     *orm.Table
+		// 表
+		Raw *orm.Table
+		// 列
 		Columns []*Column
 	}
 	// 列
 	Column struct {
+		// 顺序
+		Ordinal int
 		// 表名
 		Name string
 		// 表名首字大写
-		Title   string
-		Pk      bool
-		Auto    bool
+		Title string
+		// 是否主键
+		Pk bool
+		// 是否自动生成
+		Auto bool
+		// 是否不能为空
 		NotNull bool
-		Type    string
+		// 类型
+		Type string
+		// 注释
 		Comment string
 	}
 )
 type Session struct {
-	//生成代码变量
+	// 生成代码变量
 	codeVars map[string]interface{}
-	IdUpper  bool
+	// 模板函数
+	funcMap map[string]interface{}
+	IdUpper bool
 }
 
 // 数据库代码生成器
 func DBCodeGenerator() *Session {
 	return (&Session{
 		codeVars: make(map[string]interface{}),
+		funcMap:  (&internalFunc{}).funcMap(),
 	}).init()
 }
 
 func (s *Session) init() *Session {
-	s.Var(V_ModelPkgName, "model")
-	s.Var(V_RepoPkgName, "repo")
-	s.Var(V_IRepoPkgName, "repo")
-	s.Var(V_ModelPkg, "")
-	s.Var(V_IRepoPkg, "")
-	s.Var(V_RepoPkg, "")
+	s.Var(VModelPkgName, "model")
+	s.Var(VRepoPkgName, "repo")
+	s.Var(VIRepoPkgName, "repo")
+	s.Var(VModelPkg, "")
+	s.Var(VIRepoPkg, "")
+	s.Var(VRepoPkg, "")
 	return s
 }
 
@@ -142,13 +158,13 @@ func (s *Session) goType(dbType string) string {
 func (s *Session) ParseTables(tbs []*orm.Table, err error) ([]*Table, error) {
 	n := make([]*Table, len(tbs))
 	for i, tb := range tbs {
-		n[i] = s.ParseTable(tb)
+		n[i] = s.parseTable(i, tb)
 	}
 	return n, err
 }
 
 // 获取表结构
-func (s *Session) ParseTable(tb *orm.Table) *Table {
+func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 	n := &Table{
 		Name:    tb.Name,
 		Prefix:  s.prefix(tb.Name),
@@ -161,6 +177,7 @@ func (s *Session) ParseTable(tb *orm.Table) *Table {
 	}
 	for i, v := range tb.Columns {
 		n.Columns[i] = &Column{
+			Ordinal: i,
 			Name:    v.Name,
 			Title:   s.title(v.Name),
 			Pk:      v.Pk,
@@ -179,7 +196,7 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 		return ""
 	}
 	pkgName := ""
-	if p, ok := s.codeVars[V_ModelPkgName]; ok {
+	if p, ok := s.codeVars[VModelPkgName]; ok {
 		pkgName = p.(string)
 	} else {
 		pkgName = "model"
@@ -230,6 +247,11 @@ func (s *Session) Resolve(t CodeTemplate) CodeTemplate {
 	return t
 }
 
+// 添加函数
+func (s *Session) Func(funcName string, f interface{}) {
+	s.funcMap[funcName] = f
+}
+
 // 定义变量或修改变量
 func (s *Session) Var(key string, v interface{}) {
 	if v == nil {
@@ -268,11 +290,11 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 
 	var err error
 	t := &template.Template{}
+	t.Funcs(s.funcMap)
 	t, err = t.Parse(string(tpl))
 	if err != nil {
 		panic(err)
 	}
-
 	pk := "<PK>"
 	for i, v := range tb.Columns {
 		if i == 0 {
@@ -316,9 +338,9 @@ func (s *Session) GenerateTablesCode(tables []*Table, tpl CodeTemplate) string {
 	if tables == nil || len(tables) == 0 {
 		return ""
 	}
-
 	var err error
 	t := &template.Template{}
+	t.Funcs(s.funcMap)
 	t, err = t.Parse(string(tpl))
 	if err != nil {
 		panic(err)

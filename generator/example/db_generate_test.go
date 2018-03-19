@@ -31,9 +31,9 @@ func TestGenAll(t *testing.T) {
 	// 设置变量
 	modelPkg := "github.com/jsix/goex/generator/example/" + genDir + "model"
 	modelPkgName := "model"
-	dg.Var(generator.V_ModelPkgName, modelPkgName)
-	dg.Var(generator.V_ModelPkg, modelPkg)
-	dg.Var(generator.V_IRepoPkg, modelPkg)
+	dg.Var(generator.VModelPkgName, modelPkgName)
+	dg.Var(generator.VModelPkg, modelPkg)
+	dg.Var(generator.VIRepoPkg, modelPkg)
 	// 读取自定义模板
 	listTP, _ := dg.ParseTemplate("code_templates/grid_list.html")
 	editTP, _ := dg.ParseTemplate("code_templates/entity_edit.html")
