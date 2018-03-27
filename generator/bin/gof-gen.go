@@ -132,7 +132,7 @@ func getDb(r *gof.Registry) *sql.DB {
 
 // 恢复应用
 func crashRecover() {
-	r :=recover()
+	r := recover()
 	if r != nil {
 		fmt.Println(fmt.Sprintf("[ Gen][ Error]: %v", r))
 	}

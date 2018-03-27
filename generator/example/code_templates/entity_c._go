@@ -55,7 +55,7 @@ func ({{.Ptr}} *{{.T.Title}}C) Save{{.T.Title}}(c *echox.Context)(err error){
     if r, _ := {{.Ptr}}.Save{{.T.Title}}_(&e);r.Result_{
        rst.Data = r.Data;
     }else{
-       err = errors.New(r.Message)
+       err = errors.New(r.ErrMsg)
     }
     return c.JSON(http.StatusOK, rst.Error(err))
 }
@@ -69,7 +69,7 @@ func ({{.Ptr}} *{{.T.Title}}C) Del{{.T.Title}}(c *echox.Context)(err error) {
     id, err := util.I32Err(strconv.Atoi(c.FormValue("id")))
     if err == nil{
         if r,_ := {{.Ptr}}.Delete{{.T.Title}}_(id);!r.Result_{
-            err = errors.New(r.Message)
+            err = errors.New(r.ErrMsg)
         }
     }
     return c.JSON(http.StatusOK, rst.Error(err))
