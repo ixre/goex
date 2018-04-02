@@ -114,7 +114,7 @@
                 flag = 0;
                 $b.xhr.jsonPost("del{{.T.Title}}", {id: id}, function (r) {
                     flag = 1;
-                    if (r.result) {
+                    if (!r["errCode"]) {
                         window.refresh()
                     } else {
                         $b.dialog.alert(r.errMsg);

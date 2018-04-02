@@ -75,7 +75,7 @@
                     flag = 0;
                     $b.xhr.jsonPost("save{{.T.Title}}", data, function (r) {
                         flag = 1;
-                        if (r.result) {
+                        if (!r["errCode"]) {
                             $b.dialog.alert('保存成功', function () {
                                 if ($d) {
                                     $d.callback("refresh");
