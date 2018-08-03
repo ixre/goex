@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	var version = "1.0.2"
+	var version = "1.0.3"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -57,31 +57,39 @@ func main() {
 		log.Println("[ Gen][ Fail]:", err.Error())
 		return
 	}
-	beforeRun := strings.TrimSpace(registry.GetString("gen.command.before"))
-	afterRun := strings.TrimSpace(registry.GetString("gen.command.after"))
+
 	// 生成之前执行操作
-	if beforeRun != "" {
-		_, _, err = shell.StdRun(beforeRun)
-		if err != nil {
-			log.Println("[ Gen][ Fail]:", err.Error())
-			return
-		}
+	if err := runBefore(registry); err != nil {
+		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	// 生成代码
-	err = genByArch(arch, dg, tables, genDir, tplDir)
-	if err != nil {
-		log.Println("[ Gen][ Fail]:", err.Error())
-		return
+	if err := genByArch(arch, dg, tables, genDir, tplDir); err != nil {
+		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	// 生成之后执行操作
-	if afterRun != "" {
-		_, _, err = shell.StdRun(afterRun)
-		if err != nil {
-			log.Println("[ Gen][ Fail]:", err.Error())
-			return
-		}
+	if err := runAfter(registry); err != nil {
+		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	log.Println("[ Gen][ Success]: generate successfully!")
+}
+
+func runBefore(registry *gof.Registry) error {
+	beforeRun := strings.TrimSpace(registry.GetString("gen.command.before"))
+	if beforeRun != "" {
+		_, _, err := shell.StdRun(beforeRun)
+		return err
+	}
+	return nil
+}
+
+func runAfter(registry *gof.Registry) error {
+	afterRun := strings.TrimSpace(registry.GetString("gen.command.after"))
+	// 生成之后执行操作
+	if afterRun != "" {
+		_, _, err := shell.StdRun(afterRun)
+		return err
+	}
+	return nil
 }
 
 // 根据规则生成代码
@@ -111,7 +119,7 @@ func getDb(r *gof.Registry) *sql.DB {
 		r.GetString(prefix+".user"),
 		r.GetString(prefix+".pwd"),
 		r.GetString(prefix+".server"),
-		r.Get(prefix+".port").(int64),
+		r.Get(prefix + ".port").(int64),
 		r.GetString(prefix+".name"),
 		dbCharset,
 	)
@@ -147,7 +155,8 @@ func genCode(s *generator.Session, tables []*generator.Table, genDir string, tpl
 		sliceSize += 1
 	}
 	err := filepath.Walk(tplDir, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		// 如果模板名称以"_"开头，则忽略
+		if !info.IsDir() && info.Name()[0] != '_' {
 			tp, err := s.ParseTemplate(path)
 			if err == nil {
 				tplMap[path[sliceSize:]] = tp

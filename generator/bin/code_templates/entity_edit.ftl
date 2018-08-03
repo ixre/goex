@@ -2,10 +2,12 @@
 <html>
 <head>
     <title>{{.T.Comment}}</title>
-    ${.Var.Header}
+    <link rel="stylesheet" href="/widget/mui/base.css" type="text/css"/>
+    <link rel="stylesheet" href="/widget/mui/themes/default/page.css" type="text/css"/>
+    <link rel="stylesheet" href="/css/own/own_page.css" type="text/css"/>
 </head>
 <body>
-=$${helo}
+
 <form action="" method="post" class="gra-form" id="form1">
     {{range $i,$c := .T.Columns}}{{if $c.Pk}}
     <input type="hidden" field="{{$c.Title}}" name="{{$c.Title}}" value="0"/>{{else}}
@@ -35,19 +37,20 @@
 
 </form>
 
-<script type="text/javascript" src="${.Var.StaticServe}/assets/js/base.js?hash=${.Var.Spam}"></script>
+<script type="text/javascript" src="/js/base.js"></script>
 <script type="text/javascript">
-    //var entity = ${.Map.Entity} || {};
+    var entity = "$${Entity}";
     var formId = "form1";
-    var baseJsUrl = "${.Var.StaticServe}";
-    require([baseJsUrl + "/assets/js/super/require_config.js?hash=${.Var.Spam}"], function () {
+    require(["/js/own/require_config.js"], function () {
         require(["base"], pageLoad);
     });
 
     var $d;
     var flag = 1;
+
     function pageLoad(_) {
         $d = $b.dialog.getDialog();
+        $b.json.lowerFields("#" + formId);
         $b.json.bind(formId, entity);
 
         /*
@@ -61,7 +64,7 @@
             if (result) {
                 $b.$('upload_path').value = data.url;
                 $b.$('upload_img').setAttribute('url',
-                    '{{.Var.ImgServe}}/' + data.url);
+                    'images/' + data.url);
             } else {
                 $b.dialog.alert("上传失败：" + data);
             }
@@ -75,7 +78,7 @@
                     flag = 0;
                     $b.xhr.jsonPost("save{{.T.Title}}", data, function (r) {
                         flag = 1;
-                        if (!r["ErrCode"]) {
+                        if (!r.errCode) {
                             $b.dialog.alert('保存成功', function () {
                                 if ($d) {
                                     $d.callback("refresh");
@@ -83,7 +86,7 @@
                                 }
                             });
                         } else {
-                            $b.dialog.alert(r["ErrMsg"]);
+                            $b.dialog.alert(r.message);
                         }
                     });
                 }

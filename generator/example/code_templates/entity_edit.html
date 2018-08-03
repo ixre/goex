@@ -74,7 +74,7 @@
                     flag = 0;
                     $b.xhr.jsonPost("save{{.T.Title}}", data, function (r) {
                         flag = 1;
-                        if (!r["errCode"]) {
+                        if (!r["ErrCode"]) {
                             $b.dialog.alert('保存成功', function () {
                                 if ($d) {
                                     $d.callback("refresh");
@@ -82,7 +82,7 @@
                                 }
                             });
                         } else {
-                            $b.dialog.alert(r.errMsg);
+                            $b.dialog.alert(r["ErrMsg"]);
                         }
                     });
                 }

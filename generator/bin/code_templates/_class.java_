@@ -1,0 +1,13 @@
+package github.com.jsix.goex.generator.bin.code_templates; /** {{.T.Comment}} */
+publc class {{.T.Title}}{
+    {{range $i,$c:=.T.Columns}}
+    /** {{$c.Comment}} */
+    private {{$c.Type}} {{lowerTitle $c.Title}};
+    public {{$c.Type}} get{{$c.Title}}(){
+       return this.{{lowerTitle $c.Title}};
+    }
+    public void set{{$c.Title}}({{$c.Type}} v){
+        this.{{lowerTitle $c.Title}} = v;
+    }
+    {{end}}
+}

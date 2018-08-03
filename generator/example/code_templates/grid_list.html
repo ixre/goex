@@ -114,10 +114,10 @@
                 flag = 0;
                 $b.xhr.jsonPost("del{{.T.Title}}", {id: id}, function (r) {
                     flag = 1;
-                    if (!r["errCode"]) {
+                    if (!r["ErrCode"]) {
                         window.refresh()
                     } else {
-                        $b.dialog.alert(r.errMsg);
+                        $b.dialog.alert(r["ErrMsg"]);
                     }
                 });
             }
