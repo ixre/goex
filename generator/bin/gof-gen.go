@@ -13,12 +13,13 @@ import (
 	"github.com/jsix/gof/web/form"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
 
 func main() {
-	var version = "1.0.3"
+	var version = "1.0.4"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -45,10 +46,20 @@ func main() {
 		return
 	}
 	defer crashRecover()
-	dbName := registry.GetString("gen.database.name")
+	re := registry.Use("gen")
+	// 获取bash启动脚本，默认unix系统包含了bash，windows下需指定
+	bashExec := ""
+	if runtime.GOOS == "windows" {
+		bashExec = re.GetString("command.win_bash")
+	}
+	// 生成之前执行操作
+	if err := runBefore(re, bashExec); err != nil {
+		log.Fatalln("[ Gen][ Fail]:", err.Error())
+	}
 	// 初始化生成器
+	dbName := re.GetString("database.name")
 	d := &orm.MySqlDialect{}
-	ds := orm.DialectSession(getDb(registry), d)
+	ds := orm.DialectSession(getDb(re), d)
 	dg := generator.DBCodeGenerator()
 	dg.IdUpper = true
 	// 获取表格并转换
@@ -57,36 +68,38 @@ func main() {
 		log.Println("[ Gen][ Fail]:", err.Error())
 		return
 	}
-
-	// 生成之前执行操作
-	if err := runBefore(registry); err != nil {
-		log.Fatalln("[ Gen][ Fail]:", err.Error())
-	}
 	// 生成代码
 	if err := genByArch(arch, dg, tables, genDir, tplDir); err != nil {
 		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	// 生成之后执行操作
-	if err := runAfter(registry); err != nil {
+	if err := runAfter(re, bashExec); err != nil {
 		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	log.Println("[ Gen][ Success]: generate successfully!")
 }
 
-func runBefore(registry *gof.Registry) error {
-	beforeRun := strings.TrimSpace(registry.GetString("gen.command.before"))
-	if beforeRun != "" {
-		_, _, err := shell.StdRun(beforeRun)
-		return err
-	}
-	return nil
+func runBefore(re *gof.RegistryTree, bashExec string) error {
+	beforeRun := strings.TrimSpace(re.GetString("command.before"))
+	return execCommand(beforeRun, bashExec)
 }
 
-func runAfter(registry *gof.Registry) error {
-	afterRun := strings.TrimSpace(registry.GetString("gen.command.after"))
+func runAfter(re *gof.RegistryTree, bashExec string) error {
+	afterRun := strings.TrimSpace(re.GetString("command.after"))
+	return execCommand(afterRun, bashExec)
+}
+
+// 执行命令
+func execCommand(command string, bashExec string) error {
 	// 生成之后执行操作
-	if afterRun != "" {
-		_, _, err := shell.StdRun(afterRun)
+	if command != "" {
+		if bashExec != "" {
+			if strings.Contains(bashExec, " ") {
+				bashExec = "\"" + bashExec + "\""
+			}
+			command = bashExec + " " + command
+		}
+		_, _, err := shell.StdRun(command)
 		return err
 	}
 	return nil
@@ -106,10 +119,10 @@ func genByArch(arch string, dg *generator.Session, tables []*generator.Table,
 }
 
 // 获取数据库连接
-func getDb(r *gof.Registry) *sql.DB {
+func getDb(r *gof.RegistryTree) *sql.DB {
 	//数据库连接字符串
 	//root@tcp(127.0.0.1:3306)/db_name?charset=utf8
-	var prefix = "gen.database"
+	var prefix = "database"
 	driver := r.GetString(prefix + ".driver")
 	dbCharset := r.GetString(prefix + ".charset")
 	if dbCharset == "" {
@@ -119,7 +132,7 @@ func getDb(r *gof.Registry) *sql.DB {
 		r.GetString(prefix+".user"),
 		r.GetString(prefix+".pwd"),
 		r.GetString(prefix+".server"),
-		r.Get(prefix + ".port").(int64),
+		r.Get(prefix+".port").(int64),
 		r.GetString(prefix+".name"),
 		dbCharset,
 	)
