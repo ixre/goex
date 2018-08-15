@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	var version = "1.0.4"
+	var version = "1.0.5"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -28,8 +28,8 @@ func main() {
 	var debug bool
 	var printVer bool
 
-	flag.StringVar(&genDir, "out", "./generated_code/", "path of output directory")
-	flag.StringVar(&tplDir, "tpl", "./code_templates", "path of code templates directory")
+	flag.StringVar(&genDir, "out", "./output", "path of output directory")
+	flag.StringVar(&tplDir, "tpl", "./templates", "path of code templates directory")
 	flag.StringVar(&confPath, "conf", "./", "config path")
 	flag.StringVar(&table, "table", "", "table name or table prefix")
 	flag.StringVar(&arch, "arch", "", "program language")
