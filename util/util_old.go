@@ -10,13 +10,11 @@ package util
 
 import (
 	"encoding/json"
-	"golang.org/x/text/encoding"
-	"golang.org/x/text/encoding/simplifiedchinese"
-	"golang.org/x/text/encoding/traditionalchinese"
 	"html/template"
 	"log"
 )
 
+/*
 //编码
 func EncodingTransform(src []byte, enc string) ([]byte, error) {
 	var ec encoding.Encoding
@@ -34,6 +32,7 @@ func EncodingTransform(src []byte, enc string) ([]byte, error) {
 	n, _, err := ec.NewEncoder().Transform(dst, src, true)
 	return dst[:n], err
 }
+*/
 
 // 强制序列化为可用于HTML的JSON
 func MustHtmlJson(v interface{}) template.JS {

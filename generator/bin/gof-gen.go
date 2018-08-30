@@ -132,7 +132,7 @@ func getDb(r *gof.RegistryTree) *sql.DB {
 		r.GetString(prefix+".user"),
 		r.GetString(prefix+".pwd"),
 		r.GetString(prefix+".server"),
-		r.Get(prefix+".port").(int64),
+		r.Get(prefix + ".port").(int64),
 		r.GetString(prefix+".name"),
 		dbCharset,
 	)
@@ -174,7 +174,7 @@ func genCode(s *generator.Session, tables []*generator.Table, genDir string, tpl
 			if err == nil {
 				tplMap[path[sliceSize:]] = tp
 			}
-			return err
+			return errors.New("template:" + info.Name() + "-" + err.Error())
 		}
 		return nil
 	})
