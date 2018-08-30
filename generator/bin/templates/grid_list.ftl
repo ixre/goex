@@ -2,7 +2,11 @@
 <html>
 <head>
     <title>{{.T.Comment}}列表</title>
-    ${.Var.Header}
+    <link rel="stylesheet" href="/widget/easyui/themes/gray/easyui.css" type="text/css"/>
+    <link rel="stylesheet" href="/widget/easyui/themes/icon.css" type="text/css"/>
+    <link rel="stylesheet" href="/widget/mui/base.css" type="text/css" />
+    <link rel="stylesheet" href="/widget/mui/themes/default/page.css" type="text/css" />
+    <link rel="stylesheet" href="/css/own/own_page.css" type="text/css" />
 </head>
 <body>
 
@@ -25,7 +29,7 @@
                 </select>
             </li>
             <li>
-                <input type="hidden" field="where" value="${.Map.Where}"/>
+                <input type="hidden" field="where" value="$${Where}"/>
                 <a class="gra-btn gra-btn-fn btn-search">
                     <i class="fa fa-search" aria-hidden="true"></i>搜索</a>
             </li>
@@ -44,11 +48,9 @@
     <a class="gra-btn gra-btn-a" href="javascript:void(0)" onclick="_del('{id}')">删除</a>
 </template>
 
-<script type="text/javascript" src="${.Var.StaticServe}/assets/js/base.js?spam=${.Var.Spam}"></script>
+<script type="text/javascript" src="/js/base.js"></script>
 <script type="text/javascript">
-
-    var baseJsUrl = "${.Var.StaticServe}"; //设置JS文件的路径
-    require([baseJsUrl + "/assets/js/require_config.js?spam=${.Var.Spam}"], function () {
+    require(["/js/own/require_config.js"], function () {
         require(["base", "jquery.easyui.zh", "extra/export","extra/util"], pageLoad);
     });
 
@@ -83,8 +85,7 @@
             expo.showExportDialog();
         });
     }
-    
-    
+
     function _create() {
         var d = $b.dialog.create2("添加{{.T.Comment}}", true, true);
         d.open("create{{.T.Title}}", 600, 400);
@@ -114,10 +115,10 @@
                 flag = 0;
                 $b.xhr.jsonPost("del{{.T.Title}}", {id: id}, function (r) {
                     flag = 1;
-                    if (!r["ErrCode"]) {
+                    if (!r.errCode) {
                         window.refresh()
                     } else {
-                        $b.dialog.alert(r["ErrMsg"]);
+                        $b.dialog.alert(r.message);
                     }
                 });
             }

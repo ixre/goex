@@ -12,6 +12,7 @@ import (
 	"errors"
 	"github.com/jsix/gof"
 	"github.com/jsix/gof/log"
+	http2 "github.com/jsix/gof/net/http"
 	"github.com/jsix/gof/storage"
 	"github.com/jsix/gof/web"
 	"github.com/jsix/gof/web/session"
@@ -50,7 +51,7 @@ type (
 		Map  map[string]interface{}
 		Data interface{}
 	}
-	Handler         func(*Context) error
+	Handler func(*Context) error
 	HandlerProvider interface {
 		FactoryHandler(path string) *Handler
 	}
@@ -251,6 +252,10 @@ func (g *Group) AutoPOST(prefix string, i interface{}) {
 
 /*********  以下需重构   **********/
 
+// 返回真实IP
+func (c *Context) RealIp() string {
+	return http2.RealIp(c.Request())
+}
 func (c *Context) IsPost() bool {
 	return c.Request().Method == "POST"
 }

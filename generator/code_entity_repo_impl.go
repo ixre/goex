@@ -55,7 +55,7 @@ var (
 
             // Select <E>
             func (<Ptr> *<R>) Select<R2>(where string,v ...interface{})[]*<E2> {
-                var list []*<E2>
+                list := make([]*<E2>,0)
                 err := <Ptr>._orm.Select(&list,where,v...)
                 if err != nil && err != sql.ErrNoRows{
                   log.Println("[ Orm][ Error]:",err.Error(),"; Entity:<E>")
