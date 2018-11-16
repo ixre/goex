@@ -8,9 +8,9 @@ import (
 	"github.com/jsix/goex/generator"
 	"github.com/jsix/gof"
 	"github.com/jsix/gof/db/orm"
-	"github.com/jsix/gof/log"
 	"github.com/jsix/gof/shell"
 	"github.com/jsix/gof/web/form"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	var version = "1.0.5"
+	var version = "1.0.6"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -45,12 +45,21 @@ func main() {
 		log.Println("[ Gen][ Fail]:", err.Error())
 		return
 	}
-	defer crashRecover()
-	re := registry.Use("gen")
+	log.SetFlags(log.Ltime | log.Lshortfile)
+	defer crashRecover(debug)
 	// 获取bash启动脚本，默认unix系统包含了bash，windows下需指定
+	re := registry.Use("gen")
 	bashExec := ""
 	if runtime.GOOS == "windows" {
-		bashExec = re.GetString("command.win_bash")
+		if re.Contains("command.bash_path") {
+			bashExec = re.GetString("command.bash_path")
+		} else {
+			log.Println("[ Gen][ Warning]: guest os need config bash path")
+		}
+	}
+	// 清理之前生成的结果
+	if err = os.RemoveAll(genDir); err != nil {
+		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	// 生成之前执行操作
 	if err := runBefore(re, bashExec); err != nil {
@@ -152,10 +161,12 @@ func getDb(r *gof.RegistryTree) *sql.DB {
 }
 
 // 恢复应用
-func crashRecover() {
-	r := recover()
-	if r != nil {
-		fmt.Println(fmt.Sprintf("[ Gen][ Error]: %v", r))
+func crashRecover(debug bool) {
+	if !debug {
+		r := recover()
+		if r != nil {
+			log.Println(fmt.Sprintf("[ Gen][ Crash]: %v", r))
+		}
 	}
 }
 
@@ -171,10 +182,10 @@ func genCode(s *generator.Session, tables []*generator.Table, genDir string, tpl
 		// 如果模板名称以"_"开头，则忽略
 		if !info.IsDir() && info.Name()[0] != '_' {
 			tp, err := s.ParseTemplate(path)
-			if err == nil {
-				tplMap[path[sliceSize:]] = tp
+			if err != nil {
+				return errors.New("template:" + info.Name() + "-" + err.Error())
 			}
-			return errors.New("template:" + info.Name() + "-" + err.Error())
+			tplMap[path[sliceSize:]] = tp
 		}
 		return nil
 	})
