@@ -12,7 +12,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/jsix/gof/db"
+	"github.com/ixre/gof/db"
 	"log"
 	"os"
 	"regexp"

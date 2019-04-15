@@ -7,13 +7,13 @@ var (
 	// <E2> : 包含包名的实体
 	// <Ptr> : 仓库类对象引用
 	TPL_ENTITY_REP = CodeTemplate(
-		`// auto generate by gof (http://github.com/jsix/gof)
+		`// auto generate by gof (http://github.com/ixre/gof)
             package {{.VAR.RepoPkgName}}
             import(
                 "log"
                 "{{.VAR.ModelPkg}}"
                 "database/sql"
-                "github.com/jsix/gof/db/orm"
+                "github.com/ixre/gof/db/orm"
             )
 
             // Create new <R>

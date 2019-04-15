@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jsix/goex/echox"
+	"github.com/ixre/goex/echox"
 	"log"
 	"net/http"
 	"os"
@@ -22,10 +22,10 @@ func main() {
 	flag.Parse()
 	log.SetFlags(log.Lmicroseconds | log.LstdFlags)
 	/*
-	if uploadDir != conf.UploadSaveDir { // 设置上传文件目录
-		conf.UploadSaveDir = uploadDir
-		log.Println("[ Upload][ CONF]: upload directory is [", uploadDir, "]")
-	}*/
+		if uploadDir != conf.UploadSaveDir { // 设置上传文件目录
+			conf.UploadSaveDir = uploadDir
+			log.Println("[ Upload][ CONF]: upload directory is [", uploadDir, "]")
+		}*/
 	go signalNotify(ch)
 	go serveHttp(port)
 	<-ch
@@ -50,6 +50,7 @@ func signalNotify(c chan bool) {
 		}
 	}
 }
+
 // 运行http服务
 func serveHttp(port int) {
 	// 新建应用

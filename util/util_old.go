@@ -14,7 +14,6 @@ import (
 	"log"
 )
 
-
 // 强制序列化为可用于HTML的JSON
 func MustHtmlJson(v interface{}) template.JS {
 	d, err := json.Marshal(v)

@@ -4,7 +4,7 @@ var TPL_REPO_FACTORY = CodeTemplate(`
         package repo
         {{$var := .VAR}}
 		import(
-		    "github.com/jsix/gof/db/orm"
+		    "github.com/ixre/gof/db/orm"
 		    "{{$var.ModelPkg}}"
 		    "{{$var.RepoPkg}}"
 		    "{{$var.IRepoPkg}}"

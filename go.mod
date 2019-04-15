@@ -1,10 +1,10 @@
-module github.com/jsix/goex
+module github.com/ixre/goex
 
 // go: no requirements found in Gopkg.lock
 
 require (
 	github.com/go-sql-driver/mysql v1.4.0
-	github.com/jsix/gof v1.0.0
+	github.com/ixre/gof v1.2.0
 	github.com/labstack/echo v3.2.1+incompatible
 	github.com/labstack/gommon v0.2.1 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect

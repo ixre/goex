@@ -1,7 +1,7 @@
 package generator
 
 import (
-	"github.com/jsix/gof/util"
+	"github.com/ixre/gof/util"
 	ht "html/template"
 	"strings"
 	"unicode"

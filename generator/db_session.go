@@ -10,7 +10,7 @@ package generator
 
 import (
 	"bytes"
-	"github.com/jsix/gof/db/orm"
+	"github.com/ixre/gof/db/orm"
 	"io/ioutil"
 	"log"
 	"regexp"

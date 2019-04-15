@@ -5,11 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/jsix/goex/generator"
-	"github.com/jsix/gof"
-	"github.com/jsix/gof/db/orm"
-	"github.com/jsix/gof/shell"
-	"github.com/jsix/gof/web/form"
+	"github.com/ixre/goex/generator"
+	"github.com/ixre/gof"
+	"github.com/ixre/gof/db/orm"
+	"github.com/ixre/gof/shell"
+	"github.com/ixre/gof/web/form"
 	"log"
 	"os"
 	"path/filepath"
@@ -141,7 +141,7 @@ func getDb(r *gof.RegistryTree) *sql.DB {
 		r.GetString(prefix+".user"),
 		r.GetString(prefix+".pwd"),
 		r.GetString(prefix+".server"),
-		r.Get(prefix + ".port").(int64),
+		r.Get(prefix+".port").(int64),
 		r.GetString(prefix+".name"),
 		dbCharset,
 	)
