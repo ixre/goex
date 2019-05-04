@@ -80,6 +80,10 @@ type (
 		Type string
 		// 注释
 		Comment string
+		// 长度
+		Length int
+		// Go类型
+		GoType int
 	}
 )
 type Session struct {
@@ -132,24 +136,20 @@ func (s *Session) prefix(str string) string {
 	return ""
 }
 
-func (s *Session) goType(dbType string) string {
-	l := len(dbType)
-	switch true {
-	case strings.HasPrefix(dbType, "tinyint"):
-		return "int"
-	case strings.HasPrefix(dbType, "bit"):
-		return "bool"
-	case strings.HasPrefix(dbType, "int("):
-		if l == 6 {
-			return "int"
-		}
-		return "int64"
-	case strings.HasPrefix(dbType, "float"):
-		return "float32"
-	case strings.HasPrefix(dbType, "decimal"):
-		return "float64"
-	case dbType == "text", strings.HasPrefix(dbType, "varchar"):
+func (s *Session) goType(goType int) string {
+	switch goType {
+	case orm.GoTypeString:
 		return "string"
+	case orm.GoTypeBoolean:
+		return "bool"
+	case orm.GoTypeInt32:
+		return "int32"
+	case orm.GoTypeInt64:
+		return "int64"
+	case orm.GoTypeFloat32:
+		return "float32"
+	case orm.GoTypeFloat64:
+		return "float64"
 	}
 	return "interface{}"
 }
@@ -185,6 +185,8 @@ func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 			NotNull: v.NotNull,
 			Type:    v.Type,
 			Comment: v.Comment,
+			Length:  v.Length,
+			GoType:  v.GoType,
 		}
 	}
 	return n
@@ -222,7 +224,7 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 		buf.WriteString("    ")
 		buf.WriteString(s.title(col.Name))
 		buf.WriteString(" ")
-		buf.WriteString(s.goType(col.Type))
+		buf.WriteString(s.goType(col.GoType))
 		buf.WriteString(" `")
 		buf.WriteString("db:\"")
 		buf.WriteString(col.Name)

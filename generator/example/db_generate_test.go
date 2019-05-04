@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	driver = "mysql"
-	dbName = ""
-	dbPrefix = "wal_"
+	driver     = "mysql"
+	dbName     = ""
+	dbPrefix   = "wal_"
 	connString = "root:@tcp(127.0.0.1:3306)/txmall?charset=utf8"
 	genDir     = "generated_code/"
 )
@@ -24,12 +24,12 @@ func TestGenAll(t *testing.T) {
 	connString = "postgres://postgres:123456@127.0.0.1:5432/go2o?sslmode=disable"
 
 	// 初始化生成器
-	conn := db.NewConnector(driver,connString,nil,false).Raw()
+	conn := db.NewConnector(driver, connString, nil, false).Raw()
 	dialect := getDialect(driver)
 	ds := orm.DialectSession(conn, dialect)
 	dg := generator.DBCodeGenerator()
 	// 获取表格并转换
-	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, dbPrefix))
+	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, "", dbPrefix))
 	if err != nil {
 		t.Error(err)
 		return
@@ -83,12 +83,12 @@ func TestGenAll(t *testing.T) {
 	t.Log("生成成功")
 }
 
-
 func getDialect(driver string) orm.Dialect {
 	switch driver {
-	case "mysql":return &orm.MySqlDialect{}
-	case "postgres","postgresql":return &orm.PostgresqlDialect{}
+	case "mysql":
+		return &orm.MySqlDialect{}
+	case "postgres", "postgresql":
+		return &orm.PostgresqlDialect{}
 	}
 	return nil
 }
-

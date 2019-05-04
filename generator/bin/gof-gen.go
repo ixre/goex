@@ -22,24 +22,25 @@ import (
 type Registry struct {
 	tree *toml.Tree
 }
-func LoadRegistry(path string)(*Registry,error){
-	tree,err := toml.LoadFile(path)
-	if err == nil{
-		return &Registry{tree:tree},err
+
+func LoadRegistry(path string) (*Registry, error) {
+	tree, err := toml.LoadFile(path)
+	if err == nil {
+		return &Registry{tree: tree}, err
 	}
-	return nil,err
+	return nil, err
 }
-func (r Registry) Contains(key string)bool{
+func (r Registry) Contains(key string) bool {
 	return r.tree.Has(key)
 }
-func (r Registry) GetString(key string)string{
-	if r.Contains(key){
+func (r Registry) GetString(key string) string {
+	if r.Contains(key) {
 		return r.Get(key).(string)
 	}
 	return ""
 }
 
-func (r Registry) Get(key string)interface{} {
+func (r Registry) Get(key string) interface{} {
 	return r.tree.Get(key)
 }
 
@@ -62,12 +63,12 @@ func main() {
 	flag.BoolVar(&printVer, "v", false, "print version")
 	flag.Parse()
 	if printVer {
-		fmt.Println("GofGenerator v" + version)
+		println("GofGenerator v" + version)
 		return
 	}
-	re,err := LoadRegistry(confPath)
+	re, err := LoadRegistry(confPath)
 	if err != nil {
-		log.Println("[ Gen][ Fail]:", err.Error())
+		println("[ Gen][ Fail]:", err.Error())
 		return
 	}
 	log.SetFlags(log.Ltime | log.Lshortfile)
@@ -78,7 +79,7 @@ func main() {
 		if re.Contains("command.bash_path") {
 			bashExec = re.GetString("command.bash_path")
 		} else {
-			log.Println("[ Gen][ Warning]: guest os need config bash path")
+			println("[ Gen][ Warning]: guest os need config bash path")
 		}
 	}
 	// 清理之前生成的结果
@@ -92,16 +93,16 @@ func main() {
 	// 初始化生成器
 	driver := re.GetString("database.driver")
 	dbName := re.GetString("database.name")
-	ds := orm.DialectSession(getDb(driver,re), getDialect(driver))
+	schema := re.GetString("database.schema")
+	ds := orm.DialectSession(getDb(driver, re), getDialect(driver))
 	dg := generator.DBCodeGenerator()
 	dg.IdUpper = true
 	// 获取表格并转换
-	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, table))
+	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, schema, table))
 	if err != nil {
-		log.Println("[ Gen][ Fail]:", err.Error())
+		println("[ Gen][ Fail]:", err.Error())
 		return
 	}
-
 	// 生成代码
 	if err := genByArch(arch, dg, tables, genDir, tplDir); err != nil {
 		log.Fatalln("[ Gen][ Fail]:", err.Error())
@@ -110,7 +111,7 @@ func main() {
 	if err := runAfter(re, bashExec); err != nil {
 		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
-	log.Println("[ Gen][ Success]: generate successfully!")
+	println(fmt.Sprintf("[ Gen][ Success]: generate successfully! all %d tasks.", len(tables)))
 }
 
 func runBefore(re *Registry, bashExec string) error {
@@ -145,7 +146,7 @@ func genByArch(arch string, dg *generator.Session, tables []*generator.Table,
 	// 生成代码
 	switch arch {
 	case "repo":
-		return genGoCode(dg, tables, genDir, tplDir)
+		return genGoCode(dg, tables, genDir+"/", tplDir)
 	default:
 		return genCode(dg, tables, genDir, tplDir)
 	}
@@ -153,10 +154,10 @@ func genByArch(arch string, dg *generator.Session, tables []*generator.Table,
 }
 
 // 获取数据库连接
-func getDb(driver string,r *Registry) *sql.DB {
+func getDb(driver string, r *Registry) *sql.DB {
 	//数据库连接字符串
 	//root@tcp(127.0.0.1:3306)/db_name?charset=utf8
-	var prefix= "database"
+	var prefix = "database"
 	dbCharset := r.GetString(prefix + ".charset")
 	if dbCharset == "" {
 		dbCharset = "utf8"
@@ -168,7 +169,7 @@ func getDb(driver string,r *Registry) *sql.DB {
 			r.GetString(prefix+".user"),
 			r.GetString(prefix+".pwd"),
 			r.GetString(prefix+".server"),
-			r.Get(prefix + ".port").(int64),
+			r.Get(prefix+".port").(int64),
 			r.GetString(prefix+".name"),
 			dbCharset)
 	case "postgres", "postgresql":
@@ -176,12 +177,12 @@ func getDb(driver string,r *Registry) *sql.DB {
 			r.GetString(prefix+".user"),
 			r.GetString(prefix+".pwd"),
 			r.GetString(prefix+".server"),
-			r.Get(prefix + ".port").(int64),
+			r.Get(prefix+".port").(int64),
 			r.GetString(prefix+".name"))
 	default:
 		panic("not support driver :" + driver)
 	}
-	conn := db.NewConnector(driver, connStr, nil, false);
+	conn := db.NewConnector(driver, connStr, nil, false)
 	d := conn.Raw()
 	d.SetMaxIdleConns(10)
 	d.SetMaxIdleConns(5)
@@ -189,15 +190,15 @@ func getDb(driver string,r *Registry) *sql.DB {
 	return d
 }
 
-
 func getDialect(driver string) orm.Dialect {
 	switch driver {
-	case "mysql":return &orm.MySqlDialect{}
-	case "postgres","postgresql":return &orm.PostgresqlDialect{}
+	case "mysql":
+		return &orm.MySqlDialect{}
+	case "postgres", "postgresql":
+		return &orm.PostgresqlDialect{}
 	}
 	return nil
 }
-
 
 // 恢复应用
 func crashRecover(debug bool) {
@@ -256,11 +257,11 @@ func joinFilePath(path string, tableName string) string {
 func genGoCode(dg *generator.Session, tables []*generator.Table,
 	genDir string, tplDir string) error {
 	// 设置变量
-	dg.Var(generator.VModelPkg, "xupms/src/model")
+	dg.Var(generator.VModelPkg, "pkg/src/model")
 	dg.Var(generator.VModelPkgName, "model")
-	dg.Var(generator.VIRepoPkg, "xupms/src/repo")
+	dg.Var(generator.VIRepoPkg, "pkg/src/repo")
 	dg.Var(generator.VIRepoPkgName, "repo")
-	dg.Var(generator.VRepoPkg, "xupms/src/repo")
+	dg.Var(generator.VRepoPkg, "pkg/src/repo")
 	dg.Var(generator.VRepoPkgName, "repo")
 	// 读取自定义模板
 	listTP, _ := dg.ParseTemplate(tplDir + "/grid_list.html")
@@ -302,7 +303,7 @@ func genGoCode(dg *generator.Session, tables []*generator.Table,
 		generator.SaveFile(str, genDir+"html_edit/"+tb.Name+"_edit.html")
 		// 生成控制器
 		str = dg.GenerateCode(tb, ctrTpl, "", true, "")
-		generator.SaveFile(str, genDir+"c/"+tb.Name+"_c.go")
+		generator.SaveFile(str, genDir+"mvc/"+tb.Name+"_c.go")
 	}
 	// 生成仓储工厂
 	code := dg.GenerateTablesCode(tables, generator.TPL_REPO_FACTORY)
