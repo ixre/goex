@@ -1,29 +1,35 @@
 package example
 
 import (
-	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/ixre/goex/generator"
+	"github.com/ixre/gof/db"
 	"github.com/ixre/gof/db/orm"
 	"github.com/ixre/gof/shell"
 	"github.com/ixre/gof/web/form"
-	"log"
 	"testing"
 )
 
 var (
+	driver = "mysql"
+	dbName = ""
+	dbPrefix = "wal_"
 	connString = "root:@tcp(127.0.0.1:3306)/txmall?charset=utf8"
 	genDir     = "generated_code/"
 )
 
 // 生成数据库所有的代码文件
 func TestGenAll(t *testing.T) {
+	driver = "postgresql"
+	connString = "postgres://postgres:123456@127.0.0.1:5432/go2o?sslmode=disable"
+
 	// 初始化生成器
-	d := &orm.MySqlDialect{}
-	ds := orm.DialectSession(getDb(), d)
+	conn := db.NewConnector(driver,connString,nil,false).Raw()
+	dialect := getDialect(driver)
+	ds := orm.DialectSession(conn, dialect)
 	dg := generator.DBCodeGenerator()
 	// 获取表格并转换
-	tables, err := dg.ParseTables(ds.Tables(""))
+	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, dbPrefix))
 	if err != nil {
 		t.Error(err)
 		return
@@ -77,17 +83,12 @@ func TestGenAll(t *testing.T) {
 	t.Log("生成成功")
 }
 
-func getDb() *sql.DB {
-	db, err := sql.Open("mysql", connString)
-	if err == nil {
-		err = db.Ping()
-	}
 
-	if err != nil {
-		defer db.Close()
-		//如果异常，则显示并退出
-		log.Fatalln("[ DBC][ MySQL] " + err.Error())
-		return nil
+func getDialect(driver string) orm.Dialect {
+	switch driver {
+	case "mysql":return &orm.MySqlDialect{}
+	case "postgres","postgresql":return &orm.PostgresqlDialect{}
 	}
-	return db
+	return nil
 }
+

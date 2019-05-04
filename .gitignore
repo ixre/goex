@@ -24,3 +24,5 @@ _testmain.go
 *.prof
 output
 go.sum
+*.tar.gz
+generated_code

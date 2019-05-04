@@ -6,10 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ixre/goex/generator"
-	"github.com/ixre/gof"
+	"github.com/ixre/gof/db"
 	"github.com/ixre/gof/db/orm"
 	"github.com/ixre/gof/shell"
 	"github.com/ixre/gof/web/form"
+	"github.com/pelletier/go-toml"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,8 +19,32 @@ import (
 	"time"
 )
 
+type Registry struct {
+	tree *toml.Tree
+}
+func LoadRegistry(path string)(*Registry,error){
+	tree,err := toml.LoadFile(path)
+	if err == nil{
+		return &Registry{tree:tree},err
+	}
+	return nil,err
+}
+func (r Registry) Contains(key string)bool{
+	return r.tree.Has(key)
+}
+func (r Registry) GetString(key string)string{
+	if r.Contains(key){
+		return r.Get(key).(string)
+	}
+	return ""
+}
+
+func (r Registry) Get(key string)interface{} {
+	return r.tree.Get(key)
+}
+
 func main() {
-	var version = "1.0.6"
+	var version = "1.1.0"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -30,7 +55,7 @@ func main() {
 
 	flag.StringVar(&genDir, "out", "./output", "path of output directory")
 	flag.StringVar(&tplDir, "tpl", "./templates", "path of code templates directory")
-	flag.StringVar(&confPath, "conf", "./", "config path")
+	flag.StringVar(&confPath, "conf", "./gen.conf", "config path")
 	flag.StringVar(&table, "table", "", "table name or table prefix")
 	flag.StringVar(&arch, "arch", "", "program language")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
@@ -40,7 +65,7 @@ func main() {
 		fmt.Println("GofGenerator v" + version)
 		return
 	}
-	registry, err := gof.NewRegistry(confPath, ".")
+	re,err := LoadRegistry(confPath)
 	if err != nil {
 		log.Println("[ Gen][ Fail]:", err.Error())
 		return
@@ -48,7 +73,6 @@ func main() {
 	log.SetFlags(log.Ltime | log.Lshortfile)
 	defer crashRecover(debug)
 	// 获取bash启动脚本，默认unix系统包含了bash，windows下需指定
-	re := registry.Use("gen")
 	bashExec := ""
 	if runtime.GOOS == "windows" {
 		if re.Contains("command.bash_path") {
@@ -66,9 +90,9 @@ func main() {
 		log.Fatalln("[ Gen][ Fail]:", err.Error())
 	}
 	// 初始化生成器
+	driver := re.GetString("database.driver")
 	dbName := re.GetString("database.name")
-	d := &orm.MySqlDialect{}
-	ds := orm.DialectSession(getDb(re), d)
+	ds := orm.DialectSession(getDb(driver,re), getDialect(driver))
 	dg := generator.DBCodeGenerator()
 	dg.IdUpper = true
 	// 获取表格并转换
@@ -77,6 +101,7 @@ func main() {
 		log.Println("[ Gen][ Fail]:", err.Error())
 		return
 	}
+
 	// 生成代码
 	if err := genByArch(arch, dg, tables, genDir, tplDir); err != nil {
 		log.Fatalln("[ Gen][ Fail]:", err.Error())
@@ -88,12 +113,12 @@ func main() {
 	log.Println("[ Gen][ Success]: generate successfully!")
 }
 
-func runBefore(re *gof.RegistryTree, bashExec string) error {
+func runBefore(re *Registry, bashExec string) error {
 	beforeRun := strings.TrimSpace(re.GetString("command.before"))
 	return execCommand(beforeRun, bashExec)
 }
 
-func runAfter(re *gof.RegistryTree, bashExec string) error {
+func runAfter(re *Registry, bashExec string) error {
 	afterRun := strings.TrimSpace(re.GetString("command.after"))
 	return execCommand(afterRun, bashExec)
 }
@@ -128,37 +153,51 @@ func genByArch(arch string, dg *generator.Session, tables []*generator.Table,
 }
 
 // 获取数据库连接
-func getDb(r *gof.RegistryTree) *sql.DB {
+func getDb(driver string,r *Registry) *sql.DB {
 	//数据库连接字符串
 	//root@tcp(127.0.0.1:3306)/db_name?charset=utf8
-	var prefix = "database"
-	driver := r.GetString(prefix + ".driver")
+	var prefix= "database"
 	dbCharset := r.GetString(prefix + ".charset")
 	if dbCharset == "" {
 		dbCharset = "utf8"
 	}
-	connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&loc=Local",
-		r.GetString(prefix+".user"),
-		r.GetString(prefix+".pwd"),
-		r.GetString(prefix+".server"),
-		r.Get(prefix+".port").(int64),
-		r.GetString(prefix+".name"),
-		dbCharset,
-	)
-	db, err := sql.Open(driver, connStr)
-	if err == nil {
-		db.SetMaxIdleConns(10)
-		db.SetMaxIdleConns(5)
-		db.SetConnMaxLifetime(time.Second * 10)
-		err = db.Ping()
+	var connStr string
+	switch driver {
+	case "mysql", "mariadb":
+		connStr = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&loc=Local",
+			r.GetString(prefix+".user"),
+			r.GetString(prefix+".pwd"),
+			r.GetString(prefix+".server"),
+			r.Get(prefix + ".port").(int64),
+			r.GetString(prefix+".name"),
+			dbCharset)
+	case "postgres", "postgresql":
+		connStr = fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable",
+			r.GetString(prefix+".user"),
+			r.GetString(prefix+".pwd"),
+			r.GetString(prefix+".server"),
+			r.Get(prefix + ".port").(int64),
+			r.GetString(prefix+".name"))
+	default:
+		panic("not support driver :" + driver)
 	}
-	if err != nil {
-		defer db.Close()
-		panic(err)
-		return nil
-	}
-	return db
+	conn := db.NewConnector(driver, connStr, nil, false);
+	d := conn.Raw()
+	d.SetMaxIdleConns(10)
+	d.SetMaxIdleConns(5)
+	d.SetConnMaxLifetime(time.Second * 10)
+	return d
 }
+
+
+func getDialect(driver string) orm.Dialect {
+	switch driver {
+	case "mysql":return &orm.MySqlDialect{}
+	case "postgres","postgresql":return &orm.PostgresqlDialect{}
+	}
+	return nil
+}
+
 
 // 恢复应用
 func crashRecover(debug bool) {
