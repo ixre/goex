@@ -6,7 +6,7 @@
  * guide please see http://s.to2.net/code-generator
  *
  */
-package {{dot_pkg .global.Pkg}};
+package {{dot_pkg .global.Pkg}}.pojo;
 
 import javax.persistence.Basic;
 import javax.persistence.Id;
