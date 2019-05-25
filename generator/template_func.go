@@ -3,6 +3,7 @@ package generator
 import (
 	"github.com/ixre/gof/util"
 	ht "html/template"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -15,15 +16,19 @@ func (t *internalFunc) funcMap() ht.FuncMap {
 	fm := make(map[string]interface{})
 	fm["boolInt"] = t.boolInt
 	fm["isEmpty"] = t.isEmpty
-	fm["rawHtml"] = t.rawHtml
+	fm["raw"] = t.rawHtml
 	fm["add"] = t.plus
 	fm["plus"] = t.plus
 	fm["multi"] = t.multi
 	fm["mathRemain"] = t.mathRemain
-	fm["lowerTitle"] = t.lowerTitle
+
 	fm["title"] = t.title
 	fm["lower"] = t.lower
 	fm["upper"] = t.upper
+	fm["dot_pkg"] = t.dotPkg
+	fm["lowerTitle"] = t.lowerTitle
+	fm["lower_title"] = t.lowerTitle
+	fm["type"] = t.langType
 	return fm
 }
 
@@ -48,6 +53,19 @@ func (t *internalFunc) lowerTitle(s string) string {
 // 将字符串单词首字母大写
 func (t *internalFunc) title(s string) string {
 	return strings.Title(s)
+}
+
+// 将包名替换为.分割, 通常C#,JAVA语言使用"."分割包名
+func (t *internalFunc) dotPkg(s string) string {
+	return strings.Replace(s, "/", ".", -1)
+}
+
+func (t *internalFunc) langType(lang string, typeId int) string {
+	switch lang {
+	case "java":
+		return JavaTypes(typeId)
+	}
+	return strconv.Itoa(typeId)
 }
 
 // 判断是否为true

@@ -26,6 +26,10 @@ var (
 )
 
 const (
+	// 包名
+	PKG = "Pkg"
+	// 版本
+	VERSION = "Version"
 	//模型包名
 	VModelPkgName = "ModelPkgName"
 	//仓储结构包名
@@ -55,6 +59,8 @@ type (
 		Comment string
 		// 数据库引擎
 		Engine string
+		// 架构
+		Schema string
 		// 数据库编码
 		Charset string
 		// 表
@@ -71,7 +77,7 @@ type (
 		// 表名首字大写
 		Title string
 		// 是否主键
-		Pk bool
+		IsPK bool
 		// 是否自动生成
 		Auto bool
 		// 是否不能为空
@@ -103,6 +109,8 @@ func DBCodeGenerator() *Session {
 }
 
 func (s *Session) init() *Session {
+	s.Var(PKG, "com/pkg")
+	s.Var(VERSION, "1.0")
 	s.Var(VModelPkgName, "model")
 	s.Var(VRepoPkgName, "repo")
 	s.Var(VIRepoPkgName, "repo")
@@ -171,6 +179,7 @@ func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 		Title:   s.title(tb.Name),
 		Comment: tb.Comment,
 		Engine:  tb.Engine,
+		Schema:  tb.Schema,
 		Charset: tb.Charset,
 		Raw:     tb,
 		Columns: make([]*Column, len(tb.Columns)),
@@ -180,7 +189,7 @@ func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 			Ordinal: i,
 			Name:    v.Name,
 			Title:   s.title(v.Name),
-			Pk:      v.Pk,
+			IsPK:    v.IsPK,
 			Auto:    v.Auto,
 			NotNull: v.NotNull,
 			Type:    v.Type,
@@ -229,7 +238,7 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 		buf.WriteString("db:\"")
 		buf.WriteString(col.Name)
 		buf.WriteString("\"")
-		if col.Pk {
+		if col.IsPK {
 			buf.WriteString(" pk:\"yes\"")
 		}
 		if col.Auto {
@@ -289,7 +298,6 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 	if tb == nil {
 		return ""
 	}
-
 	var err error
 	t := &template.Template{}
 	t.Funcs(s.funcMap)
@@ -297,30 +305,40 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 	if err != nil {
 		panic(err)
 	}
-	pk := "<PK>"
+	pk := "<IsPK>"
 	for i, v := range tb.Columns {
 		if i == 0 {
 			pk = v.Name
 		}
-		if v.Pk {
+		if v.IsPK {
 			pk = v.Name
 			break
 		}
 	}
-	n := s.title(tb.Name)
+	columns := tb.Columns
+	//n := s.title(tb.Name)
+	n := tb.Title
 	r2 := ""
 	if sign {
 		r2 = n
 	}
 	mp := map[string]interface{}{
-		"VAR": s.codeVars,
-		"T":   tb,
-		"R":   n + structSuffix,
-		"R2":  r2,
-		"E":   n,
-		"E2":  ePrefix + n,
-		"Ptr": strings.ToLower(tb.Name[:1]),
-		"PK":  s.title(pk),
+		"global":  s.codeVars,          // 全局变量
+		"version": s.codeVars[VERSION], // 版本
+		"pkg":     s.codeVars[PKG],     //包名
+		"table":   tb,                  // 数据表
+		"columns": columns,             // 列
+		"pk":      pk,                  // 主键列名
+
+		//---------- 旧的字段 ------------------//
+		"VAR":  s.codeVars, // 全局变量
+		"T":    tb,         // 数据表
+		"R":    n + structSuffix,
+		"R2":   r2,
+		"E":    n,
+		"E2":   ePrefix + n,
+		"Ptr":  strings.ToLower(tb.Name[:1]),
+		"IsPK": s.title(pk),
 	}
 	buf := bytes.NewBuffer(nil)
 	err = t.Execute(buf, mp)

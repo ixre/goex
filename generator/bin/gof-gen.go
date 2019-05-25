@@ -45,7 +45,7 @@ func (r Registry) Get(key string) interface{} {
 }
 
 func main() {
-	var version = "1.1.0"
+	var version = "1.2"
 	var genDir string   //输出目录
 	var confPath string //设置目录
 	var tplDir string   //模板目录
@@ -73,6 +73,11 @@ func main() {
 	}
 	log.SetFlags(log.Ltime | log.Lshortfile)
 	defer crashRecover(debug)
+	// 获取包名
+	pkgName := "com/pkg"
+	if re.Contains("code.pkg") {
+		pkgName = re.GetString("code.pkg")
+	}
 	// 获取bash启动脚本，默认unix系统包含了bash，windows下需指定
 	bashExec := ""
 	if runtime.GOOS == "windows" {
@@ -96,6 +101,8 @@ func main() {
 	schema := re.GetString("database.schema")
 	ds := orm.DialectSession(getDb(driver, re), getDialect(driver))
 	dg := generator.DBCodeGenerator()
+	dg.Var(generator.VERSION, version)
+	dg.Var(generator.PKG, pkgName)
 	dg.IdUpper = true
 	// 获取表格并转换
 	tables, err := dg.ParseTables(ds.TablesByPrefix(dbName, schema, table))

@@ -18,7 +18,7 @@ func resolveRepTag(g CodeTemplate) CodeTemplate {
 		Replace("<E2>", "{{.E2}}", -1).
 		Replace("<R>", "{{.R}}", -1).
 		Replace("<R2>", "{{.R2}}", -1).
-		Replace("<PK>", "{{.PK}}", -1)
+		Replace("<IsPK>", "{{.IsPK}}", -1)
 }
 
 func init() {

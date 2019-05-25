@@ -65,7 +65,7 @@ var (
 
             // Save <E>
             func (<Ptr> *<R>) Save<R2>(v *<E2>)(int,error){
-                id,err := orm.Save(<Ptr>._orm,v,int(v.<PK>))
+                id,err := orm.Save(<Ptr>._orm,v,int(v.<IsPK>))
                 if err != nil && err != sql.ErrNoRows{
                   log.Println("[ Orm][ Error]:",err.Error(),"; Entity:<E>")
                 }
