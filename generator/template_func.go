@@ -62,8 +62,12 @@ func (t *internalFunc) dotPkg(s string) string {
 
 func (t *internalFunc) langType(lang string, typeId int) string {
 	switch lang {
+	case "go":
+		return GoTypes(typeId)
 	case "java":
 		return JavaTypes(typeId)
+	case "kotlin":
+		return KotlinTypes(typeId)
 	}
 	return strconv.Itoa(typeId)
 }

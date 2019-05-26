@@ -89,7 +89,7 @@ type (
 		// 长度
 		Length int
 		// Go类型
-		GoType int
+		TypeId int
 	}
 )
 type Session struct {
@@ -146,17 +146,17 @@ func (s *Session) prefix(str string) string {
 
 func (s *Session) goType(goType int) string {
 	switch goType {
-	case orm.GoTypeString:
+	case orm.TypeString:
 		return "string"
-	case orm.GoTypeBoolean:
+	case orm.TypeBoolean:
 		return "bool"
-	case orm.GoTypeInt32:
+	case orm.TypeInt32:
 		return "int32"
-	case orm.GoTypeInt64:
+	case orm.TypeInt64:
 		return "int64"
-	case orm.GoTypeFloat32:
+	case orm.TypeFloat32:
 		return "float32"
-	case orm.GoTypeFloat64:
+	case orm.TypeFloat64:
 		return "float64"
 	}
 	return "interface{}"
@@ -195,7 +195,7 @@ func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 			Type:    v.Type,
 			Comment: v.Comment,
 			Length:  v.Length,
-			GoType:  v.GoType,
+			TypeId:  v.TypeId,
 		}
 	}
 	return n
@@ -233,7 +233,7 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 		buf.WriteString("    ")
 		buf.WriteString(s.title(col.Name))
 		buf.WriteString(" ")
-		buf.WriteString(s.goType(col.GoType))
+		buf.WriteString(s.goType(col.TypeId))
 		buf.WriteString(" `")
 		buf.WriteString("db:\"")
 		buf.WriteString(col.Name)

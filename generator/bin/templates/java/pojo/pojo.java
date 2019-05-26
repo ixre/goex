@@ -20,7 +20,7 @@ import javax.persistence.GeneratedValue;
 @Entity
 @Table(name = "{{.table.Name}}", schema = "{{.table.Schema}}")
 public class {{.table.Title}}Entity {
-    {{range $i,$c := .columns}}{{$type := type "java" $c.GoType}}
+    {{range $i,$c := .columns}}{{$type := type "java" $c.TypeId}}
     private {{$type}} {{$c.Name}}
     public void set{{$c.Title}}({{$type}} {{$c.Name}}){
         this.{{$c.Name}} = {{$c.Name}}

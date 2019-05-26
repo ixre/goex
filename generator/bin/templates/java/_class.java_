@@ -2,11 +2,11 @@ package github.com.jsix.goex.generator.bin.code_templates; /** {{.T.Comment}} */
 publc class {{.T.Title}}{
     {{range $i,$c:=.T.Columns}}
     /** {{$c.Comment}} */
-    private {{$c.Type}} {{lower_title $c.Title}};
-    public {{$c.Type}} get{{$c.Title}}(){
+    private {{$c.TypeId}} {{lower_title $c.Title}};
+    public {{$c.TypeId}} get{{$c.Title}}(){
        return this.{{lower_title $c.Title}};
     }
-    public void set{{$c.Title}}({{$c.Type}} v){
+    public void set{{$c.Title}}({{$c.TypeId}} v){
         this.{{lowerTitle $c.Title}} = v;
     }
     {{end}}

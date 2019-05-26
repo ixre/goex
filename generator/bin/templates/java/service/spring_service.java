@@ -26,7 +26,7 @@ public class {{.table.Title}}Service {
         this.repo.delete({{.pk}})
     }
     {{range $i,$c := .columns}}
-    public {{$tableTitle}}Entity getBy{{$c.Title}}({{type "java" $c.GoType}} {{$c.Name}}){
+    public {{$tableTitle}}Entity getBy{{$c.Title}}({{type "java" $c.TypeId}} {{$c.Name}}){
         return this.repo.findBy{{$c.Title}}({{$c.Name}})
     }
     {{end}}
