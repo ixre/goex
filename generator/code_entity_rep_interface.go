@@ -2,7 +2,7 @@ package generator
 
 var (
 	// 实体仓储接口模板
-	TPL_ENTITY_REP_INTERFACE = CodeTemplate(
+	TPL_ENTITY_REP_INTERFACE = NewTemplate(
 		`// auto generate by gof (http://github.com/ixre/gof)
         package {{.VAR.IRepoPkgName}}
 

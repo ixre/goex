@@ -219,7 +219,7 @@ func crashRecover(debug bool) {
 
 // 生成代码
 func genCode(s *generator.Session, tables []*generator.Table, genDir string, tplDir string) error {
-	tplMap := map[string]generator.CodeTemplate{}
+	tplMap := map[string]*generator.CodeTemplate{}
 	sliceSize := len(tplDir) - 1
 	if tplDir[sliceSize] == '/' {
 		tplDir = tplDir + "/"
@@ -245,7 +245,13 @@ func genCode(s *generator.Session, tables []*generator.Table, genDir string, tpl
 	for _, tb := range tables {
 		for path, tpl := range tplMap {
 			str := s.GenerateCode(tb, tpl, "", true, "")
-			generator.SaveFile(str, genDir+"/"+joinFilePath(path, tb.Name))
+			dstPath := genDir + "/" + joinFilePath(path, tb.Name)
+			// 如果设置文件名
+			if n, ok := tpl.Predefine("target"); ok {
+				rp := generator.ResolvePathString(n, s.AllVars(), tb)
+				dstPath = genDir + "/" + rp
+			}
+			generator.SaveFile(str, dstPath)
 		}
 	}
 	return err

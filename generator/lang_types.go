@@ -12,6 +12,8 @@ func  GoTypes(typeId int) string {
 		return "string"
 	case orm.TypeBoolean:
 		return "bool"
+	case orm.TypeInt16:
+		return "int16"
 	case orm.TypeInt32:
 		return "int32"
 	case orm.TypeInt64:
@@ -35,7 +37,7 @@ func JavaTypes(typeId int) string {
 		return "Float"
 	case orm.TypeFloat64:
 		return "Double"
-	case orm.TypeInt32:
+	case orm.TypeInt16,orm.TypeInt32:
 		return "int"
 	case orm.TypeString:
 		return "String"
@@ -54,7 +56,7 @@ func KotlinTypes(typeId int) string {
 		return "Float"
 	case orm.TypeFloat64:
 		return "Double"
-	case orm.TypeInt32:
+	case orm.TypeInt16,orm.TypeInt32:
 		return "Int"
 	case orm.TypeString:
 		return "String"

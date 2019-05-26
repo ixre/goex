@@ -7,7 +7,7 @@
 <body>
 =$${helo}
 <form action="" method="post" class="gra-form" id="form1">
-    {{range $i,$c := .T.Columns}}{{if $c.IsPK}}
+    {{range $i,$c := .T.Columns}}{{if $c.IsPk}}
     <input type="hidden" field="{{$c.Title}}" name="{{$c.Title}}" value="0"/>{{else}}
     <div class="gra-form-field">{{if $c.NotNull}}
         <div class="gra-form-label"><span class="red">*&nbsp;</span>{{$c.Comment}}：</div>

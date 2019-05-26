@@ -1,6 +1,6 @@
 package generator
 
-var TPL_REPO_FACTORY = CodeTemplate(`
+var TPL_REPO_FACTORY = NewTemplate(`
         package repo
         {{$var := .VAR}}
 		import(

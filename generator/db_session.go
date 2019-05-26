@@ -65,6 +65,8 @@ type (
 		Charset string
 		// 表
 		Raw *orm.Table
+		// 主键
+		Pk string
 		// 列
 		Columns []*Column
 	}
@@ -77,7 +79,7 @@ type (
 		// 表名首字大写
 		Title string
 		// 是否主键
-		IsPK bool
+		IsPk bool
 		// 是否自动生成
 		Auto bool
 		// 是否不能为空
@@ -150,6 +152,8 @@ func (s *Session) goType(goType int) string {
 		return "string"
 	case orm.TypeBoolean:
 		return "bool"
+	case orm.TypeInt16:
+		return "int16"
 	case orm.TypeInt32:
 		return "int32"
 	case orm.TypeInt64:
@@ -185,11 +189,14 @@ func (s *Session) parseTable(ordinal int, tb *orm.Table) *Table {
 		Columns: make([]*Column, len(tb.Columns)),
 	}
 	for i, v := range tb.Columns {
+		if v.IsPk && n.Pk==""{
+			n.Pk = v.Name
+		}
 		n.Columns[i] = &Column{
 			Ordinal: i,
 			Name:    v.Name,
 			Title:   s.title(v.Name),
-			IsPK:    v.IsPK,
+			IsPk:    v.IsPk,
 			Auto:    v.Auto,
 			NotNull: v.NotNull,
 			Type:    v.Type,
@@ -238,7 +245,7 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 		buf.WriteString("db:\"")
 		buf.WriteString(col.Name)
 		buf.WriteString("\"")
-		if col.IsPK {
+		if col.IsPk {
 			buf.WriteString(" pk:\"yes\"")
 		}
 		if col.Auto {
@@ -253,9 +260,8 @@ func (s *Session) TableToGoStruct(tb *Table) string {
 }
 
 // 解析模板
-func (s *Session) Resolve(t CodeTemplate) CodeTemplate {
-	t = resolveRepTag(t)
-	return t
+func (s *Session) Resolve(t *CodeTemplate) *CodeTemplate {
+	return resolveRepTag(t)
 }
 
 // 添加函数
@@ -277,6 +283,11 @@ func (s *Session) Var(key string, v interface{}) {
 	s.codeVars[key] = v
 }
 
+// 返回所有的变量
+func (s *Session) AllVars()map[string]interface{}{
+	return s.codeVars
+}
+
 // 还原模板的标签: ${...} -> {{...}}, $$ -> $
 func (s *Session) revertTemplateVariable(str string) string {
 	str = revertTemplateRegexp.ReplaceAllString(str, "$1{{$2}}")
@@ -284,16 +295,16 @@ func (s *Session) revertTemplateVariable(str string) string {
 }
 
 // 转换成为模板
-func (s *Session) ParseTemplate(file string) (CodeTemplate, error) {
+func (s *Session) ParseTemplate(file string) (*CodeTemplate, error) {
 	data, err := ioutil.ReadFile(file)
 	if err == nil {
-		return CodeTemplate(string(data)), nil
+		return NewTemplate(string(data)), nil
 	}
-	return CodeTemplate(""), err
+	return NewTemplate(""), err
 }
 
 // 生成代码
-func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
+func (s *Session) GenerateCode(tb *Table, tpl *CodeTemplate,
 	structSuffix string, sign bool, ePrefix string) string {
 	if tb == nil {
 		return ""
@@ -301,19 +312,9 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 	var err error
 	t := &template.Template{}
 	t.Funcs(s.funcMap)
-	t, err = t.Parse(string(tpl))
+	t, err = t.Parse(tpl.template)
 	if err != nil {
 		panic(err)
-	}
-	pk := "<IsPK>"
-	for i, v := range tb.Columns {
-		if i == 0 {
-			pk = v.Name
-		}
-		if v.IsPK {
-			pk = v.Name
-			break
-		}
 	}
 	columns := tb.Columns
 	//n := s.title(tb.Name)
@@ -324,11 +325,11 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 	}
 	mp := map[string]interface{}{
 		"global":  s.codeVars,          // 全局变量
-		"version": s.codeVars[VERSION], // 版本
-		"pkg":     s.codeVars[PKG],     //包名
+		//"version": s.codeVars[VERSION], // 版本
+		//"pkg":     s.codeVars[PKG],     //包名
 		"table":   tb,                  // 数据表
 		"columns": columns,             // 列
-		"pk":      pk,                  // 主键列名
+		"pk":      tb.Pk,                  // 主键列名
 
 		//---------- 旧的字段 ------------------//
 		"VAR":  s.codeVars, // 全局变量
@@ -338,7 +339,7 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 		"E":    n,
 		"E2":   ePrefix + n,
 		"Ptr":  strings.ToLower(tb.Name[:1]),
-		"IsPK": s.title(pk),
+		"IsPK": s.title(tb.Pk),
 	}
 	buf := bytes.NewBuffer(nil)
 	err = t.Execute(buf, mp)
@@ -354,20 +355,22 @@ func (s *Session) GenerateCode(tb *Table, tpl CodeTemplate,
 	return ""
 }
 
-func (s *Session) GenerateTablesCode(tables []*Table, tpl CodeTemplate) string {
+func (s *Session) GenerateTablesCode(tables []*Table, tpl *CodeTemplate) string {
 	if tables == nil || len(tables) == 0 {
 		return ""
 	}
 	var err error
 	t := &template.Template{}
 	t.Funcs(s.funcMap)
-	t, err = t.Parse(string(tpl))
+	t, err = t.Parse(tpl.template)
 	if err != nil {
 		panic(err)
 	}
 	mp := map[string]interface{}{
 		"VAR":    s.codeVars,
 		"Tables": tables,
+		"tables":tables,
+		"global":s.codeVars,
 	}
 	buf := bytes.NewBuffer(nil)
 	err = t.Execute(buf, mp)

@@ -21,14 +21,13 @@ func (t *internalFunc) funcMap() ht.FuncMap {
 	fm["plus"] = t.plus
 	fm["multi"] = t.multi
 	fm["mathRemain"] = t.mathRemain
-
 	fm["title"] = t.title
 	fm["lower"] = t.lower
 	fm["upper"] = t.upper
-	fm["dot_pkg"] = t.dotPkg
 	fm["lowerTitle"] = t.lowerTitle
 	fm["lower_title"] = t.lowerTitle
 	fm["type"] = t.langType
+	fm["pkg"] = t.langPkg
 	return fm
 }
 
@@ -55,10 +54,6 @@ func (t *internalFunc) title(s string) string {
 	return strings.Title(s)
 }
 
-// 将包名替换为.分割, 通常C#,JAVA语言使用"."分割包名
-func (t *internalFunc) dotPkg(s string) string {
-	return strings.Replace(s, "/", ".", -1)
-}
 
 func (t *internalFunc) langType(lang string, typeId int) string {
 	switch lang {
@@ -71,6 +66,21 @@ func (t *internalFunc) langType(lang string, typeId int) string {
 	}
 	return strconv.Itoa(typeId)
 }
+
+// 将包名替换为.分割, 通常C#,JAVA语言使用"."分割包名
+func (t *internalFunc) langPkg(lang string,pkg string) string {
+	switch lang {
+	case "java","kotlin","csharp":
+		return strings.Replace(pkg, "/", ".", -1)
+	case "go","rust","php","python":
+		i := strings.LastIndexAny(pkg,"/.")
+		if i != -1{
+			return pkg[i+1:]
+		}
+	}
+	return pkg
+}
+
 
 // 判断是否为true
 func (t *internalFunc) boolInt(i int32) bool {
