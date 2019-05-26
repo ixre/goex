@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{.T.Comment}}列表</title>
+    <title>{{.table.Comment}}列表</title>
     <link rel="stylesheet" href="/widget/easyui/themes/gray/easyui.css" type="text/css"/>
     <link rel="stylesheet" href="/widget/easyui/themes/icon.css" type="text/css"/>
     <link rel="stylesheet" href="/widget/mui/base.css" type="text/css" />
@@ -16,7 +16,7 @@
         <ul>
             <li>
                 <a class="gra-btn gra-btn-fn btn-add">
-                    <i class="fa fa-plus" aria-hidden="true"></i>创建{{.T.Comment}}</a>
+                    <i class="fa fa-plus" aria-hidden="true"></i>创建{{.table.Comment}}</a>
             </li>
             <li>
                 <span class="title">关键字：</span>
@@ -56,7 +56,7 @@
 
     var flag = 1;
     function pageLoad(_) {
-        expo.portal = "{{.T.Prefix}}/{{.T.Title}}List";
+        expo.portal = "{{.table.Prefix}}/{{.table.Title}}List";
         var opHtml = $b.html("tpl_op");
         $("#dg").datagrid({
             toolbar: ".toolBar",
@@ -87,9 +87,9 @@
     }
 
     function _create() {
-        var d = $b.dialog.create2("添加{{.T.Comment}}", true, true);
-        d.open("create{{.T.Title}}", 600, 400);
-        // $b.tab.open("创建{{.T.Comment}}", "create{{.T.Title}}", true);
+        var d = $b.dialog.create2("添加{{.table.Comment}}", true, true);
+        d.open("create{{.table.Title}}", 600, 400);
+        // $b.tab.open("创建{{.table.Comment}}", "create{{.table.Title}}", true);
     }
     
     function _search() {
@@ -97,14 +97,14 @@
     }
 
     function _edit(id) {
-        var d = $b.dialog.create2("修改{{.T.Comment}}", true, true);
-        d.open("edit{{.T.Title}}?id=" + id, 600, 400);
-        // $b.tab.open("修改{{.T.Comment}}", "edit{{.T.Title}}?id="+id, true);
+        var d = $b.dialog.create2("修改{{.table.Comment}}", true, true);
+        d.open("edit{{.table.Title}}?id=" + id, 600, 400);
+        // $b.tab.open("修改{{.table.Comment}}", "edit{{.table.Title}}?id="+id, true);
     }
 
     <!--
     function _list(id){
-        $b.tab.open("{{.T.Comment}}", "List?group_id="+id, true);
+        $b.tab.open("{{.table.Comment}}", "List?group_id="+id, true);
     }
     -->
 
@@ -113,7 +113,7 @@
             if (!r) {return;}
             if(flag) {
                 flag = 0;
-                $b.xhr.jsonPost("del{{.T.Title}}", {id: id}, function (r) {
+                $b.xhr.jsonPost("del{{.table.Title}}", {id: id}, function (r) {
                     flag = 1;
                     if (!r.errCode) {
                         window.refresh()

@@ -9,8 +9,8 @@
 
 package {{dot_pkg .global.Pkg}};
 
-/** {{.T.Comment}} */
-class {{.T.Title}}{
+/** {{.table.Comment}} */
+class {{.table.Title}}{
     {{range $i,$c:=.columns}}
     /** {{$c.Comment}} */
     var {{lowerTitle $c.Title}}:{{type "kotlin" $c.TypeId}} = {{end}}

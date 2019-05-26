@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{.T.Comment}}</title>
+    <title>{{.table.Comment}}</title>
     <link rel="stylesheet" href="/widget/mui/base.css" type="text/css"/>
     <link rel="stylesheet" href="/widget/mui/themes/default/page.css" type="text/css"/>
     <link rel="stylesheet" href="/css/own/own_page.css" type="text/css"/>
@@ -76,7 +76,7 @@
                 var data = $b.json.toObject(formId);
                 if (flag) {
                     flag = 0;
-                    $b.xhr.jsonPost("save{{.T.Title}}", data, function (r) {
+                    $b.xhr.jsonPost("save{{.table.Title}}", data, function (r) {
                         flag = 1;
                         if (!r.errCode) {
                             $b.dialog.alert('保存成功', function () {

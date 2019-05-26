@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{.T.Comment}}</title>
+    <title>{{.table.Comment}}</title>
     ${.Var.Header}
 </head>
 <body>
@@ -72,7 +72,7 @@
                 var data = $b.json.toObject(formId);
                 if (flag) {
                     flag = 0;
-                    $b.xhr.jsonPost("save{{.T.Title}}", data, function (r) {
+                    $b.xhr.jsonPost("save{{.table.Title}}", data, function (r) {
                         flag = 1;
                         if (!r["ErrCode"]) {
                             $b.dialog.alert('保存成功', function () {

@@ -11,48 +11,48 @@ import (
     "github.com/ixre/gof/util"
 )
 
-type {{.T.Title}}C struct{
+type {{.table.Title}}C struct{
 }
 
-/** {{.T.Comment }} - {{.T.Title}} **/
+/** {{.table.Comment }} - {{.table.Title}} **/
 
-// {{.T.Comment}}列表
-func ({{.Ptr}} *{{.T.Title}}C) {{.T.Title}}List(c *echox.Context) error {
+// {{.table.Comment}}列表
+func ({{.Ptr}} *{{.table.Title}}C) {{.table.Title}}List(c *echox.Context) error {
     d := c.NewData()
-    return c.RenderOK("{{.T.Prefix}}/{{.T.Name}}_list.html", d)
+    return c.RenderOK("{{.table.Prefix}}/{{.table.Name}}_list.html", d)
 }
 
-// 创建{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Create{{.T.Title}}(c *echox.Context) error {
-    e := &model.{{.T.Title}}{}
+// 创建{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Create{{.table.Title}}(c *echox.Context) error {
+    e := &model.{{.table.Title}}{}
     d := c.NewData()
     d.Map["Entity"] = util.MustHtmlJson(e)
-    return c.RenderOK("{{.T.Prefix}}/{{.T.Name}}_edit.html", d)
+    return c.RenderOK("{{.table.Prefix}}/{{.table.Name}}_edit.html", d)
 }
 
-// 修改{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Edit{{.T.Title}}(c *echox.Context) error {
+// 修改{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Edit{{.table.Title}}(c *echox.Context) error {
     id, err := util.I32Err(strconv.Atoi(c.QueryParam("id")))
     if err != nil {
         return nil
     }
-    e := {{.Ptr}}.Get{{.T.Title}}_(id)
+    e := {{.Ptr}}.Get{{.table.Title}}_(id)
     d := c.NewData()
     d.Map["Entity"] = util.MustHtmlJson(e)
-    return c.RenderOK("{{.T.Prefix}}/{{.T.Name}}_edit.html", d)
+    return c.RenderOK("{{.table.Prefix}}/{{.table.Name}}_edit.html", d)
 }
 
-// 保存{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Save{{.T.Title}}(c *echox.Context)(err error){
+// 保存{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Save{{.table.Title}}(c *echox.Context)(err error){
     if !c.IsPost(){
         return nil
     }
     rst := gof.Result{}
     req := c.Request()
     req.ParseForm()
-    e := model.{{.T.Title}}{}
+    e := model.{{.table.Title}}{}
     form.ParseEntity(req.Form, &e)
-    if r, _ := {{.Ptr}}.Save{{.T.Title}}_(&e);r.Result_{
+    if r, _ := {{.Ptr}}.Save{{.table.Title}}_(&e);r.Result_{
        rst.Data = r.Data;
     }else{
        err = errors.New(r.ErrMsg)
@@ -60,15 +60,15 @@ func ({{.Ptr}} *{{.T.Title}}C) Save{{.T.Title}}(c *echox.Context)(err error){
     return c.JSON(http.StatusOK, rst.Error(err))
 }
 
-// 删除{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Del{{.T.Title}}(c *echox.Context)(err error) {
+// 删除{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Del{{.table.Title}}(c *echox.Context)(err error) {
     if !c.IsPost(){
        return nil
     }
     rst := gof.Result{}
     id, err := util.I32Err(strconv.Atoi(c.FormValue("id")))
     if err == nil{
-        if r,_ := {{.Ptr}}.Delete{{.T.Title}}_(id);!r.Result_{
+        if r,_ := {{.Ptr}}.Delete{{.table.Title}}_(id);!r.Result_{
             err = errors.New(r.ErrMsg)
         }
     }
@@ -76,17 +76,17 @@ func ({{.Ptr}} *{{.T.Title}}C) Del{{.T.Title}}(c *echox.Context)(err error) {
 }
 
 
-// 获取{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Get{{.T.Title}}_(id int32)(*model.{{.T.Title}}){
+// 获取{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Get{{.table.Title}}_(id int32)(*model.{{.table.Title}}){
    return nil
 }
 
-// 保存{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Save{{.T.Title}}_(v *model.{{.T.Title}})(*ttype.Result_, error){
+// 保存{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Save{{.table.Title}}_(v *model.{{.table.Title}})(*ttype.Result_, error){
    return &ttype.Result_{Result_:true},nil
 }
 
-// 删除{{.T.Comment}}
-func ({{.Ptr}} *{{.T.Title}}C) Delete{{.T.Title}}_(id int32)(*ttype.Result_, error){
+// 删除{{.table.Comment}}
+func ({{.Ptr}} *{{.table.Title}}C) Delete{{.table.Title}}_(id int32)(*ttype.Result_, error){
    return &ttype.Result_{Result_:true},nil
 }
