@@ -74,9 +74,9 @@ type (
 	Column struct {
 		// 顺序
 		Ordinal int
-		// 表名
+		// 列名
 		Name string
-		// 表名首字大写
+		// 列名首字大写
 		Title string
 		// 是否主键
 		IsPk bool

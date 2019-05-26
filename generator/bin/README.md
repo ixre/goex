@@ -38,7 +38,7 @@ gof-gen -conf gen.conf
 
 ## 模板
 
-模板主要包含以下对象: 
+模板主要包含三大对象: 
 
 - global
 - table
@@ -47,7 +47,7 @@ gof-gen -conf gen.conf
 
 ### global
 
-> 用于读取全局变量, global的属性均以大写开头; global为小写.
+**用于读取全局变量, global的属性均以大写开头; global为小写.**
 
 输出生成器的版本号
 ```
@@ -63,6 +63,43 @@ package {{.global.Pkg}}
 package {{pkg "java" .global.Pkg}}
 // c# namespace
 namespace {{pkg "csharp" .global.Pkg}}
+```
+
+### table 数据表对象
+
+数据表对象对来返回表的信息,包含如下属性:
+
+- Name: 表名
+- Prefix: 表前缀
+- Pk: 主键,默认为:id
+- Title: 表名单词首字大写,通常用来表示类型,
+  如:user_info对应的Title为UserInfo
+- Comment: 表注释
+- Engine: 数据库引擎
+- Schema: 架构
+- Charset: 数据库编码
+- Ordinal: 表的序号
+
+### colums 数据列对象
+
+数据列对象存储表的数据列数组, 并且可遍历. 每个数据列都包含如下属性:
+
+- Name: 列名
+- Title: 列名首字大写, 同表Title
+- IsPk: 是否主键(bool)
+- Auto:  是否自动生成(bool)
+- NotNull: 是否不能为空(bool)
+- Type: 数据类型
+- Comment: 注释
+- Length: 长度
+- TypeId: 类型编号,使用type函数转换为对应语言的类型
+- Ordinal: 列的序号
+
+示例:
+```
+{{range $i,$c := .columns}}
+    列名:$c.Name {{if $c.IsPk}}是主键{{end}}, 类型:{{type "java" $c.TypeId}}
+{{end}}
 ```
 
 ## 模板示例
