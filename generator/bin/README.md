@@ -1,6 +1,6 @@
 # 代码生成器
 
-** 项目已经移动到 [tto](http://github.com/ixre/tto.git) **
+** 项目已经移动到 [gof-gen](http://github.com/ixre/gof-gen.git) **
 
 使用Go编写的代码生成器,可根据模板定制生成代码.
 
