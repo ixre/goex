@@ -106,7 +106,7 @@ namespace {{pkg "csharp" .global.Pkg}}
 
 ## 模板示例
 
-以下代码用于生成Java的Pojo对象, 更多示例点击[这里](./templates)
+以下代码用于生成Java的Pojo对象, 更多示例点击[这里](bin/templates)
 
 ```
 !target:{{.global.Pkg}}/pojo/{{.table.Title}}Entity.java
