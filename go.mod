@@ -3,20 +3,16 @@ module github.com/ixre/goex
 // go: no requirements found in Gopkg.lock
 
 require (
-	github.com/go-sql-driver/mysql v1.4.0
-	github.com/ixre/gof v1.2.0
-	github.com/labstack/echo v3.2.1+incompatible
-	github.com/labstack/gommon v0.2.1 // indirect
-	github.com/mattn/go-colorable v0.0.9 // indirect
-	github.com/mattn/go-isatty v0.0.3 // indirect
-	github.com/pelletier/go-toml v1.0.1
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/testify v1.2.2 // indirect
-	github.com/valyala/bytebufferpool v0.0.0-20160817181652-e746df99fe4a // indirect
-	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4 // indirect
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734 // indirect
-	golang.org/x/sys v0.0.0-20190429190828-d89cdac9e872 // indirect
-	google.golang.org/appengine v1.5.0 // indirect
+	github.com/go-sql-driver/mysql v1.4.1
+	github.com/ixre/gof v1.5.9
+	github.com/labstack/echo v3.3.10+incompatible
+	github.com/labstack/gommon v0.2.9 // indirect
+	github.com/pelletier/go-toml v1.4.0
+	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4 // indirect
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
+	golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0 // indirect
+	golang.org/x/tools v0.0.0-20190624222133-a101b041ded4 // indirect
+	google.golang.org/appengine v1.6.1 // indirect
 )
 
 replace github.com/ixre/gof => ../gof
