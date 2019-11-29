@@ -51,10 +51,7 @@ type (
 		Map  map[string]interface{}
 		Data interface{}
 	}
-	Handler         func(*Context) error
-	HandlerProvider interface {
-		FactoryHandler(path string) *Handler
-	}
+	Handler func(*Context) error
 )
 
 type renderer struct {
@@ -245,6 +242,7 @@ func (g *Group) AutoGET(prefix string, i interface{}) {
 
 func (g *Group) AutoPOST(prefix string, i interface{}) {
 	mp := getHandlerArray(i)
+	panic(len(mp))
 	for k, v := range mp {
 		g.Group.POST(prefix+"/"+k, g.echo.parseHandler(v))
 	}

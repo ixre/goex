@@ -11,9 +11,11 @@ package report
 import (
 	"database/sql"
 	_ "database/sql"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -138,15 +140,22 @@ func parseColumnMapping(str string) []ColumnMapping {
 // 转换参数
 func ParseParams(paramMappings string) Params {
 	params := Params{}
-	if paramMappings != "" {
-		paramMappings = strings.Replace(paramMappings,
-			"%3d", "=", -1)
-		var paramsArr, splitArr []string
-		paramsArr = strings.Split(paramMappings, ";")
-		//添加传入的参数
-		for _, v := range paramsArr {
-			splitArr = strings.Split(v, ":")
-			params[splitArr[0]] = v[len(splitArr[0])+1:]
+	if len(paramMappings) > 0 {
+		if paramMappings[0] == '{' {
+			if err := json.Unmarshal([]byte(paramMappings), &params); err != nil {
+				log.Print("[ export][ param]: parse params failed,"+
+					"", err.Error(), "; data=", paramMappings)
+			}
+		} else {
+			paramMappings = strings.Replace(paramMappings,
+				"%3d", "=", -1)
+			var paramsArr, splitArr []string
+			paramsArr = strings.Split(paramMappings, ";")
+			//添加传入的参数
+			for _, v := range paramsArr {
+				splitArr = strings.Split(v, ":")
+				params[splitArr[0]] = v[len(splitArr[0])+1:]
+			}
 		}
 	}
 	return params

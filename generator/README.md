@@ -36,7 +36,7 @@ gof-gen -conf gen.conf
 
 目前,支持的预定义语法如下:
 
-- !target : 用来定义代码文件存放的目标路径
+- \#!target : 用来定义代码文件存放的目标路径
 
 ## 模板
 
@@ -109,7 +109,7 @@ namespace {{pkg "csharp" .global.Pkg}}
 以下代码用于生成Java的Pojo对象, 更多示例点击[这里](bin/templates)
 
 ```
-!target:{{.global.Pkg}}/pojo/{{.table.Title}}Entity.java
+#target!{{.global.Pkg}}/pojo/{{.table.Title}}Entity.java
 package {{pkg "java" .global.Pkg}}.pojo;
 
 import javax.persistence.Basic;
