@@ -4,7 +4,7 @@ module github.com/ixre/goex
 
 require (
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/ixre/gof v1.5.9
+	github.com/ixre/gof v1.8.1
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.2.9 // indirect
 	github.com/pelletier/go-toml v1.4.0
