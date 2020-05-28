@@ -100,7 +100,7 @@ namespace {{pkg "csharp" .global.Pkg}}
 示例:
 ```
 {{range $i,$c := .columns}}
-    列名:$c.Name {{if $c.IsPk}}是主键{{end}}, 类型:{{type "java" $c.TypeId}}
+    列名:$c.Name {{if $c.IsPk}}是主键{{end}}, 类型:{{type "java" $c.Type}}
 {{end}}
 ```
 
@@ -109,7 +109,7 @@ namespace {{pkg "csharp" .global.Pkg}}
 以下代码用于生成Java的Pojo对象, 更多示例点击[这里](bin/templates)
 
 ```
-#target!{{.global.Pkg}}/pojo/{{.table.Title}}Entity.java
+#!target:{{.global.Pkg}}/pojo/{{.table.Title}}Entity.java
 package {{pkg "java" .global.Pkg}}.pojo;
 
 import javax.persistence.Basic;
@@ -124,9 +124,9 @@ import javax.persistence.GeneratedValue;
 @Entity
 @Table(name = "{{.table.Name}}", schema = "{{.table.Schema}}")
 public class {{.table.Title}}Entity {
-    {{range $i,$c := .columns}}{{$type := type "java" $c.TypeId}}
+    {{range $i,$c := .columns}}{{$type := type "java" $c.Type}}
     private {{$type}} {{$c.Name}}
-    public void set{{$c.Title}}({{$type}} {{$c.Name}}){
+    public void set{{$c.Prop}}({{$type}} {{$c.Name}}){
         this.{{$c.Name}} = {{$c.Name}}
     }
 
@@ -135,7 +135,7 @@ public class {{.table.Title}}Entity {
     @GeneratedValue(strategy = GenerationType.IDENTITY){{else}}
     @Basic{{end}}
     @Column(name = "{{$c.Name}}"{{if not $c.NotNull}}, nullable = true{{end}} {{if ne $c.Length 0}},length = {{$c.Length}}{{end}})
-    public {{$type}} get{{$c.Title}}() {
+    public {{$type}} get{{$c.Prop}}() {
         return this.{{$c.Name}};
     }
     {{end}}
