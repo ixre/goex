@@ -73,30 +73,29 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	sqlDb := e.dbProvider.GetDB()
 
 	//初始化添加参数
-	if _, e := p["pageSize"]; !e {
-		p["pageSize"] = "10000000000"
+	if _, e := p["page_size"]; !e {
+		p["page_size"] = "10000000000"
 	}
-	if _, e := p["pageIndex"]; !e {
-		p["pageIndex"] = "1"
+	if _, e := p["page_index"]; !e {
+		p["page_index"] = "1"
 	}
 	// 获取页码和每页加载数量
-	pi, _ := p["pageIndex"]
-	ps, _ := p["pageSize"]
+	pi, _ := p["page_index"]
+	ps, _ := p["page_size"]
 	pageIndex, _ := strconv.Atoi(pi)
 	pageSize, _ := strconv.Atoi(ps)
 	// 设置SQL分页信息
 	if pageIndex > 0 {
-		p["page_start"] = strconv.Itoa((pageIndex - 1) * pageSize)
+		p["page_offset"] = strconv.Itoa((pageIndex - 1) * pageSize)
 	} else {
-		p["page_start"] = "0"
+		p["page_offset"] = "0"
 	}
 	p["page_end"] = strconv.Itoa(pageIndex * pageSize)
-	p["page_size"] = strconv.Itoa(pageSize)
 
 	//统计总行数
 	if e.sqlConfig.Total != "" {
 		sql := SqlFormat(e.sqlConfig.Total, p)
-		smt, err := sqlDb.Prepare(sql)
+		smt, err := sqlDb.Prepare(e.check(sql))
 		if err == nil {
 			row := smt.QueryRow()
 			smt.Close()
@@ -125,7 +124,7 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	if t := len(sqlLines); t > 1 {
 		for i, v := range sqlLines {
 			if i != t-1 {
-				smt, err := sqlDb.Prepare(v)
+				smt, err := sqlDb.Prepare(e.check(v))
 				if err == nil {
 					smt.Exec()
 					smt.Close()
@@ -134,7 +133,7 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 		}
 		sql = sqlLines[t-1]
 	}
-	smt, err := sqlDb.Prepare(sql)
+	smt, err := sqlDb.Prepare(e.check(sql))
 	if err == nil {
 		defer smt.Close()
 		sqlRows, err = smt.Query()
@@ -167,6 +166,13 @@ func (e *ExportItem) Export(parameters *ExportParams,
 		fmtArray = append(fmtArray, formatter)
 	}
 	return provider.Export(rows, parameters.ExportFields, names, fmtArray)
+}
+
+func (e *ExportItem) check(s string) string {
+	if !CheckInject(s) {
+		panic("dangers sql: " + s)
+	}
+	return s
 }
 
 //导出项工厂

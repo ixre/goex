@@ -53,18 +53,18 @@ gof-gen -conf gen.conf
 
 输出生成器的版本号
 ```
-// this file created by generate {{.global.Version}}
+// this file created by generate {{.global.version}}
 ```
 输出包名,包名通过配置文件配置.格式为: com/pkg
 ```
-package {{.global.Pkg}}
+package {{.global.pkg}}
 ```
 如果是Java或其他语言, 包名以"."分割, 可使用pkg函数,如:
 ```
 // java package
-package {{pkg "java" .global.Pkg}}
+package {{pkg "java" .global.pkg}}
 // c# namespace
-namespace {{pkg "csharp" .global.Pkg}}
+namespace {{pkg "csharp" .global.pkg}}
 ```
 
 ### table 数据表对象
@@ -109,8 +109,8 @@ namespace {{pkg "csharp" .global.Pkg}}
 以下代码用于生成Java的Pojo对象, 更多示例点击[这里](bin/templates)
 
 ```
-#!target:{{.global.Pkg}}/pojo/{{.table.Title}}Entity.java
-package {{pkg "java" .global.Pkg}}.pojo;
+#!target:{{.global.pkg}}/pojo/{{.table.Title}}Entity.java
+package {{pkg "java" .global.pkg}}.pojo;
 
 import javax.persistence.Basic;
 import javax.persistence.Id;

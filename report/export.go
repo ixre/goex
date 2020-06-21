@@ -25,6 +25,7 @@ import (
 var (
 	interFmt      = &internalFormatter{}
 	errNoSuchItem = errors.New("no such item")
+	injectRegexp = regexp.MustCompile("\\bEXEC\\\\b|UNION.+?SELECT|UPDATE.+?SET|INSERT\\\\s+INTO.+?VALUES|DELETE.+?FROM|(CREATE|ALTER|DROP|TRUNCATE)\\\\s+(TABLE|DATABASE)")
 )
 
 type (
@@ -109,6 +110,11 @@ func (p Params) CopyForm(form url.Values) {
 	}
 }
 
+func (p Params) Contains(k string) bool {
+	_,ok := p[k]
+	return ok
+}
+
 //获取列映射数组
 func readItemConfigFromXml(xmlFilePath string) (*ItemConfig, error) {
 	var cfg ItemConfig
@@ -158,8 +164,17 @@ func ParseParams(paramMappings string) Params {
 			}
 		}
 	}
+	if !params.Contains("where"){
+		params["where"] = "0=0"
+	}
 	return params
 }
+
+// 判断是否存在危险的注入操作
+func CheckInject(s string)bool {
+	return !injectRegexp.Match([]byte(s))
+}
+
 
 // 格式化sql语句
 func SqlFormat(sql string, ht map[string]string) (formatted string) {
