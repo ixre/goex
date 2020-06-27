@@ -21,7 +21,7 @@ INNER JOIN mm_profile pro ON pro.member_id = m.id
  AND ({level_value}<0 OR m.level={level_value})
  AND ({state} <0 OR m.state={state})
 ORDER BY m.reg_time DESC
- LIMIT {page_start},{page_size}
+ LIMIT {page_offset},{page_size}
      ]]>
   </Query>
   <Import><![CDATA[]]></Import>

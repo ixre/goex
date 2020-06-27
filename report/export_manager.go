@@ -248,10 +248,10 @@ func (f *ItemManager) GetExportData(portal string, p Params, page string,
 	exportItem := f.GetItem(portal)
 	if exportItem != nil {
 		if page != "" {
-			p["pageIndex"] = page
+			p["page_index"] = page
 		}
 		if rows != "" {
-			p["pageSize"] = rows
+			p["page_size"] = rows
 		}
 		return exportItem.GetSchemaAndData(p)
 	}
