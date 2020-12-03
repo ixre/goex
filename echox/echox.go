@@ -16,7 +16,7 @@ import (
 	"github.com/ixre/gof/storage"
 	"github.com/ixre/gof/web"
 	"github.com/ixre/gof/web/session"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"io"
 	"net/http"
 	"reflect"
