@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"github.com/ixre/gof/types/typeconv"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -81,7 +82,7 @@ type (
 	}
 
 	// 参数
-	Params map[string]string
+	Params map[string]interface{}
 
 	//导出参数
 	ExportParams struct {
@@ -176,10 +177,11 @@ func CheckInject(s string) bool {
 }
 
 // 格式化sql语句
-func SqlFormat(sql string, ht map[string]string) (formatted string) {
+func SqlFormat(sql string, ht map[string]interface{}) (formatted string) {
 	formatted = sql
 	for k, v := range ht {
-		formatted = strings.Replace(formatted, "{"+k+"}", v, -1)
+		formatted = strings.Replace(formatted, "{"+k+"}",
+			typeconv.Stringify(v), -1)
 	}
 	return formatted
 }

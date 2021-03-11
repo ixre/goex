@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ixre/gof/db"
+	"github.com/ixre/gof/types/typeconv"
 	"log"
 	"os"
 	"regexp"
@@ -82,8 +83,8 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	// 获取页码和每页加载数量
 	pi, _ := p["page_index"]
 	ps, _ := p["page_size"]
-	pageIndex, _ := strconv.Atoi(pi)
-	pageSize, _ := strconv.Atoi(ps)
+	pageIndex := typeconv.MustInt(pi)
+	pageSize  := typeconv.MustInt(ps)
 	// 设置SQL分页信息
 	if pageIndex > 0 {
 		p["page_offset"] = strconv.Itoa((pageIndex - 1) * pageSize)

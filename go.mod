@@ -1,6 +1,6 @@
 module github.com/ixre/goex
 
-go 1.15
+go 1.16
 
 require (
 	github.com/ixre/gof v1.10.5
