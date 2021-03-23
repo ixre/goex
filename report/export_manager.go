@@ -84,7 +84,7 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	pi, _ := p["page_index"]
 	ps, _ := p["page_size"]
 	pageIndex := typeconv.MustInt(pi)
-	pageSize  := typeconv.MustInt(ps)
+	pageSize := typeconv.MustInt(ps)
 	// 设置SQL分页信息
 	if pageIndex > 0 {
 		p["page_offset"] = strconv.Itoa((pageIndex - 1) * pageSize)
@@ -244,14 +244,14 @@ func (f *ItemManager) loadExportItem(portalKey string,
 }
 
 // 获取导出数据
-func (f *ItemManager) GetExportData(portal string, p Params, page string,
-	rows string) (data []map[string]interface{}, total int, err error) {
+func (f *ItemManager) GetExportData(portal string, p Params, page int,
+	rows int) (data []map[string]interface{}, total int, err error) {
 	exportItem := f.GetItem(portal)
 	if exportItem != nil {
-		if page != "" {
+		if page > 0 {
 			p["page_index"] = page
 		}
-		if rows != "" {
+		if rows > 0 {
 			p["page_size"] = rows
 		}
 		return exportItem.GetSchemaAndData(p)
