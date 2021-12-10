@@ -67,7 +67,7 @@ func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interfac
 
 func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, total int, err error) {
 	if e == nil || e.dbProvider == nil {
-		return nil, 0, errors.New("no such db provider¬")
+		return nil, 0, errors.New("no match config item")
 	}
 	total = 0
 	var sqlRows *sql.Rows
