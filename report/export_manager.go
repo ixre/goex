@@ -23,7 +23,7 @@ import (
 
 var _ IDataExportPortal = new(ExportItem)
 
-// 导出项目
+// ExportItem 导出项目
 type ExportItem struct {
 	columnMapping []ColumnMapping
 	sqlConfig     *ItemConfig
@@ -36,7 +36,7 @@ func (e *ExportItem) formatMappingString(str string) string {
 	return reg.ReplaceAllString(e.sqlConfig.ColumnMapping, "")
 }
 
-//导出的列名(比如：数据表是因为列，这里我需要列出中文列)
+// GetColumnMapping 导出的列名(比如：数据表是因为列，这里我需要列出中文列)
 func (e *ExportItem) GetColumnMapping() []ColumnMapping {
 	if e.columnMapping == nil {
 		e.sqlConfig.ColumnMapping = e.formatMappingString(e.sqlConfig.ColumnMapping)
@@ -60,7 +60,7 @@ func (e *ExportItem) GetExportColumnNames(
 	return names
 }
 
-//获取统计数据
+// GetTotalView 获取统计数据
 func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interface{}) {
 	return nil
 }
@@ -86,15 +86,17 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	pageIndex := typeconv.MustInt(pi)
 	pageSize := typeconv.MustInt(ps)
 	// 设置SQL分页信息
+	offset := 0
 	if pageIndex > 0 {
-		p["page_offset"] = strconv.Itoa((pageIndex - 1) * pageSize)
+		offset = (pageIndex - 1) * pageSize
+		p["page_offset"] = offset
 	} else {
 		p["page_offset"] = "0"
 	}
 	p["page_end"] = strconv.Itoa(pageIndex * pageSize)
 
 	//统计总行数
-	if e.sqlConfig.Total != "" {
+	if offset == 0 && e.sqlConfig.Total != "" {
 		sql := SqlFormat(e.sqlConfig.Total, p)
 		smt, err := sqlDb.Prepare(e.check(sql))
 		if err == nil {
@@ -148,7 +150,7 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 	return nil, total, err
 }
 
-// 获取要导出的数据Json格式
+// GetJsonData 获取要导出的数据Json格式
 func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	result, err := json.Marshal(nil)
 	if err != nil {
@@ -157,7 +159,7 @@ func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	return string(result)
 }
 
-// 导出数据
+// Export 导出数据
 func (e *ExportItem) Export(parameters *ExportParams,
 	provider IExportProvider, formatter IExportFormatter) []byte {
 	rows, _, _ := e.GetSchemaAndData(parameters.Params)
@@ -176,7 +178,7 @@ func (e *ExportItem) check(s string) string {
 	return s
 }
 
-//导出项工厂
+// ItemManager 导出项工厂
 type ItemManager struct {
 	//配置存放路径
 	rootPath string
@@ -190,7 +192,7 @@ type ItemManager struct {
 	cacheFiles bool
 }
 
-// 新建导出项目管理器
+// NewItemManager 新建导出项目管理器
 func NewItemManager(db IDbProvider, rootPath string, cacheFiles bool) *ItemManager {
 	if rootPath == "" {
 		rootPath = "/query/"
@@ -207,7 +209,7 @@ func NewItemManager(db IDbProvider, rootPath string, cacheFiles bool) *ItemManag
 	}
 }
 
-// 获取导出项
+// GetItem 获取导出项
 func (f *ItemManager) GetItem(portalKey string) IDataExportPortal {
 	item, exist := f.exportItems[portalKey]
 	if !exist {
@@ -243,7 +245,7 @@ func (f *ItemManager) loadExportItem(portalKey string,
 	return nil
 }
 
-// 获取导出数据
+// GetExportData 获取导出数据
 func (f *ItemManager) GetExportData(portal string, p Params, page int,
 	rows int) (data []map[string]interface{}, total int, err error) {
 	exportItem := f.GetItem(portal)
@@ -259,7 +261,7 @@ func (f *ItemManager) GetExportData(portal string, p Params, page int,
 	return make([]map[string]interface{}, 0), 0, errNoSuchItem
 }
 
-// 获取导出列勾选项
+// GetWebExportCheckOptions 获取导出列勾选项
 func (f *ItemManager) GetWebExportCheckOptions(portal string, token string) (string, error) {
 	p := f.GetItem(portal)
 	if p == nil {
