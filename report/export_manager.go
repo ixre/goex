@@ -13,11 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ixre/gof/db"
-	"github.com/ixre/gof/types/typeconv"
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -65,59 +63,37 @@ func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interfac
 	return nil
 }
 
-func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, total int, err error) {
-	if e == nil || e.dbProvider == nil {
-		return nil, 0, errors.New("no match config item")
+func (e *ExportItem) GetTotalCount(p Params)(int,error) {
+	sqlDb := e.dbProvider.GetDB()
+	total := 0
+	if e.sqlConfig.Total == "" {
+		return 0,errors.New("no set total sql")
 	}
-	total = 0
+	sql := SqlFormat(e.sqlConfig.Total, p)
+	smt, err := sqlDb.Prepare(e.check(sql))
+	if err == nil {
+		row := smt.QueryRow()
+		smt.Close()
+		if row != nil {
+			err = row.Scan(&total)
+		}
+	}
+	if err != nil {
+		log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
+	}
+	return total,err
+}
+
+func (e *ExportItem) GetSchemaData(p Params)([]map[string]interface{},error){
+	if e == nil || e.dbProvider == nil {
+		return nil, errors.New("no match config item")
+	}
 	var sqlRows *sql.Rows
 	sqlDb := e.dbProvider.GetDB()
-
-	//初始化添加参数
-	if _, e := p["page_size"]; !e {
-		p["page_size"] = "10000000000"
-	}
-	if _, e := p["page_index"]; !e {
-		p["page_index"] = "1"
-	}
-	// 获取页码和每页加载数量
-	pi, _ := p["page_index"]
-	ps, _ := p["page_size"]
-	pageIndex := typeconv.MustInt(pi)
-	pageSize := typeconv.MustInt(ps)
-	// 设置SQL分页信息
-	offset := 0
-	if pageIndex > 0 {
-		offset = (pageIndex - 1) * pageSize
-		p["page_offset"] = offset
-	} else {
-		p["page_offset"] = "0"
-	}
-	p["page_end"] = strconv.Itoa(pageIndex * pageSize)
-
-	//统计总行数
-	if offset == 0 && e.sqlConfig.Total != "" {
-		sql := SqlFormat(e.sqlConfig.Total, p)
-		smt, err := sqlDb.Prepare(e.check(sql))
-		if err == nil {
-			row := smt.QueryRow()
-			smt.Close()
-			if row != nil {
-				err = row.Scan(&total)
-			}
-		}
-		if err != nil {
-			log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-			return make([]map[string]interface{}, 0), 0, err
-		}
-		// 没有结果，直接返回
-		if total == 0 {
-			return make([]map[string]interface{}, 0), total, err
-		}
-	}
+	p.reduce()
 	// 获得数据
 	if e.sqlConfig.Query == "" {
-		return make([]map[string]interface{}, 0), total,
+		return make([]map[string]interface{}, 0),
 			errors.New("no such query of item; key:" + e.PortalKey)
 	}
 	sql := SqlFormat(e.sqlConfig.Query, p)
@@ -143,11 +119,25 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 		if err == nil {
 			data := db.RowsToMarshalMap(sqlRows)
 			sqlRows.Close()
-			return data, total, err
+			return data,  err
 		}
 	}
 	log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-	return nil, total, err
+	return nil,  err
+}
+
+func (e *ExportItem) GetSchemaAndData(p Params) ([]map[string]interface{},  int,  error) {
+	if e == nil || e.dbProvider == nil {
+		return nil, 0, errors.New("no match config item")
+	}
+	total := -1
+	rows,err := e.GetSchemaData(p)
+	if err == nil && len(rows) > 0{
+		if p.IsFirstIndex(){
+			total,err = e.GetTotalCount(p)
+		}
+	}
+	return rows,total,err
 }
 
 // GetJsonData 获取要导出的数据Json格式
