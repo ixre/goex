@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 @ to2.net.
+ * Copyright 2013 @ 56x.net.
  * name :
  * author : jarryliu
  * date : 2013-02-04 20:13
@@ -56,7 +56,11 @@ type (
 	IDataExportPortal interface {
 		//导出的列名(比如：数据表是因为列，这里我需要列出中文列)
 		GetColumnMapping() []ColumnMapping
-		//获取要导出的数据及表结构
+		// GetTotalCount 查询总条数
+		GetTotalCount(p Params)(int,error)
+		// GetSchemaData 查询数据
+		GetSchemaData(p Params)([]map[string]interface{},error)
+		// GetSchemaAndData 获取要导出的数据及表结构,仅在第一页时查询分页数据
 		GetSchemaAndData(p Params) (rows []map[string]interface{},
 			total int, err error)
 		//获取要导出的数据Json格式
@@ -93,7 +97,8 @@ type (
 	}
 )
 
-// 从Map中拷贝数据
+const reduceKey = "__reduce"
+// Copy 从Map中拷贝数据
 func (p Params) Copy(form map[string]string) {
 	for k, v := range form {
 		if k != "total" && k != "rows" && k != "params" {
@@ -102,7 +107,7 @@ func (p Params) Copy(form map[string]string) {
 	}
 }
 
-// 从表单参数中导入数据
+// CopyForm 从表单参数中导入数据
 func (p Params) CopyForm(form url.Values) {
 	for k, v := range form {
 		if k != "total" && k != "rows" && k != "params" {
@@ -110,6 +115,41 @@ func (p Params) CopyForm(form url.Values) {
 		}
 	}
 }
+
+func (p Params) IsFirstIndex() bool{
+	if !p.Contains(reduceKey){
+		p.reduce()
+	}
+	return p["page_offset"] == "0"
+}
+
+func (p Params) reduce(){
+	if p.Contains(reduceKey){
+		return
+	}
+	//初始化添加参数
+	if _, e := p["page_size"]; !e {
+		p["page_size"] = "10000000000"
+	}
+	if _, e := p["page_index"]; !e {
+		p["page_index"] = "1"
+	}
+	// 获取页码和每页加载数量
+	pi, _ := p["page_index"]
+	ps, _ := p["page_size"]
+	pageIndex := typeconv.MustInt(pi)
+	pageSize := typeconv.MustInt(ps)
+	// 设置SQL分页信息
+	if pageIndex > 0 {
+		offset := (pageIndex - 1) * pageSize
+		p["page_offset"] = strconv.Itoa(offset)
+	} else {
+		p["page_offset"] = "0"
+	}
+	p["page_end"] = strconv.Itoa(pageIndex * pageSize)
+	p[reduceKey] = true
+}
+
 
 func (p Params) Contains(k string) bool {
 	_, ok := p[k]

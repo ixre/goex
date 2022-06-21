@@ -26,7 +26,7 @@ ORDER BY m.reg_time DESC
     </Query>
     <Import><![CDATA[]]></Import>
     <Total>
-        <![CDATA[ SELECT COUNT(0) FROM mm_member m  INNER JOIN  mm_relation r ON m.id = r.member_id
+        <![CDATA[ SELECT COUNT(1) FROM mm_member m  INNER JOIN  mm_relation r ON m.id = r.member_id
 INNER JOIN mm_level lv ON lv.id = m.level
 INNER JOIN mm_account ac ON m.id = ac.member_id
 INNER JOIN mm_profile pro ON pro.member_id = m.id

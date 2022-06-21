@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 @ to2.net.
+ * Copyright 2013 @ 56x.net.
  * name :
  * author : jarryliu
  * date : 2013-02-04 20:13
@@ -13,17 +13,15 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ixre/gof/db"
-	"github.com/ixre/gof/types/typeconv"
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
 var _ IDataExportPortal = new(ExportItem)
 
-// 导出项目
+// ExportItem 导出项目
 type ExportItem struct {
 	columnMapping []ColumnMapping
 	sqlConfig     *ItemConfig
@@ -36,7 +34,7 @@ func (e *ExportItem) formatMappingString(str string) string {
 	return reg.ReplaceAllString(e.sqlConfig.ColumnMapping, "")
 }
 
-//导出的列名(比如：数据表是因为列，这里我需要列出中文列)
+// GetColumnMapping 导出的列名(比如：数据表是因为列，这里我需要列出中文列)
 func (e *ExportItem) GetColumnMapping() []ColumnMapping {
 	if e.columnMapping == nil {
 		e.sqlConfig.ColumnMapping = e.formatMappingString(e.sqlConfig.ColumnMapping)
@@ -60,62 +58,42 @@ func (e *ExportItem) GetExportColumnNames(
 	return names
 }
 
-//获取统计数据
+// GetTotalView 获取统计数据
 func (e *ExportItem) GetTotalView(ht map[string]string) (row map[string]interface{}) {
 	return nil
 }
 
-func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, total int, err error) {
-	if e == nil || e.dbProvider == nil {
-		return nil, 0, errors.New("no such db provider¬")
+func (e *ExportItem) GetTotalCount(p Params)(int,error) {
+	sqlDb := e.dbProvider.GetDB()
+	total := 0
+	if e.sqlConfig.Total == "" {
+		return 0,errors.New("no set total sql")
 	}
-	total = 0
+	sql := SqlFormat(e.sqlConfig.Total, p)
+	smt, err := sqlDb.Prepare(e.check(sql))
+	if err == nil {
+		row := smt.QueryRow()
+		smt.Close()
+		if row != nil {
+			err = row.Scan(&total)
+		}
+	}
+	if err != nil {
+		log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
+	}
+	return total,err
+}
+
+func (e *ExportItem) GetSchemaData(p Params)([]map[string]interface{},error){
+	if e == nil || e.dbProvider == nil {
+		return nil, errors.New("no match config item")
+	}
 	var sqlRows *sql.Rows
 	sqlDb := e.dbProvider.GetDB()
-
-	//初始化添加参数
-	if _, e := p["page_size"]; !e {
-		p["page_size"] = "10000000000"
-	}
-	if _, e := p["page_index"]; !e {
-		p["page_index"] = "1"
-	}
-	// 获取页码和每页加载数量
-	pi, _ := p["page_index"]
-	ps, _ := p["page_size"]
-	pageIndex := typeconv.MustInt(pi)
-	pageSize := typeconv.MustInt(ps)
-	// 设置SQL分页信息
-	if pageIndex > 0 {
-		p["page_offset"] = strconv.Itoa((pageIndex - 1) * pageSize)
-	} else {
-		p["page_offset"] = "0"
-	}
-	p["page_end"] = strconv.Itoa(pageIndex * pageSize)
-
-	//统计总行数
-	if e.sqlConfig.Total != "" {
-		sql := SqlFormat(e.sqlConfig.Total, p)
-		smt, err := sqlDb.Prepare(e.check(sql))
-		if err == nil {
-			row := smt.QueryRow()
-			smt.Close()
-			if row != nil {
-				err = row.Scan(&total)
-			}
-		}
-		if err != nil {
-			log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-			return make([]map[string]interface{}, 0), 0, err
-		}
-		// 没有结果，直接返回
-		if total == 0 {
-			return make([]map[string]interface{}, 0), total, err
-		}
-	}
+	p.reduce()
 	// 获得数据
 	if e.sqlConfig.Query == "" {
-		return make([]map[string]interface{}, 0), total,
+		return make([]map[string]interface{}, 0),
 			errors.New("no such query of item; key:" + e.PortalKey)
 	}
 	sql := SqlFormat(e.sqlConfig.Query, p)
@@ -141,14 +119,28 @@ func (e *ExportItem) GetSchemaAndData(p Params) (rows []map[string]interface{}, 
 		if err == nil {
 			data := db.RowsToMarshalMap(sqlRows)
 			sqlRows.Close()
-			return data, total, err
+			return data,  err
 		}
 	}
 	log.Println("[ Export][ Error] -", err.Error(), "\n", sql)
-	return nil, total, err
+	return nil,  err
 }
 
-// 获取要导出的数据Json格式
+func (e *ExportItem) GetSchemaAndData(p Params) ([]map[string]interface{},  int,  error) {
+	if e == nil || e.dbProvider == nil {
+		return nil, 0, errors.New("no match config item")
+	}
+	total := -1
+	rows,err := e.GetSchemaData(p)
+	if err == nil && len(rows) > 0{
+		if p.IsFirstIndex(){
+			total,err = e.GetTotalCount(p)
+		}
+	}
+	return rows,total,err
+}
+
+// GetJsonData 获取要导出的数据Json格式
 func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	result, err := json.Marshal(nil)
 	if err != nil {
@@ -157,7 +149,7 @@ func (e *ExportItem) GetJsonData(ht map[string]string) string {
 	return string(result)
 }
 
-// 导出数据
+// Export 导出数据
 func (e *ExportItem) Export(parameters *ExportParams,
 	provider IExportProvider, formatter IExportFormatter) []byte {
 	rows, _, _ := e.GetSchemaAndData(parameters.Params)
@@ -176,7 +168,7 @@ func (e *ExportItem) check(s string) string {
 	return s
 }
 
-//导出项工厂
+// ItemManager 导出项工厂
 type ItemManager struct {
 	//配置存放路径
 	rootPath string
@@ -190,7 +182,7 @@ type ItemManager struct {
 	cacheFiles bool
 }
 
-// 新建导出项目管理器
+// NewItemManager 新建导出项目管理器
 func NewItemManager(db IDbProvider, rootPath string, cacheFiles bool) *ItemManager {
 	if rootPath == "" {
 		rootPath = "/query/"
@@ -207,7 +199,7 @@ func NewItemManager(db IDbProvider, rootPath string, cacheFiles bool) *ItemManag
 	}
 }
 
-// 获取导出项
+// GetItem 获取导出项
 func (f *ItemManager) GetItem(portalKey string) IDataExportPortal {
 	item, exist := f.exportItems[portalKey]
 	if !exist {
@@ -243,7 +235,7 @@ func (f *ItemManager) loadExportItem(portalKey string,
 	return nil
 }
 
-// 获取导出数据
+// GetExportData 获取导出数据
 func (f *ItemManager) GetExportData(portal string, p Params, page int,
 	rows int) (data []map[string]interface{}, total int, err error) {
 	exportItem := f.GetItem(portal)
@@ -259,7 +251,7 @@ func (f *ItemManager) GetExportData(portal string, p Params, page int,
 	return make([]map[string]interface{}, 0), 0, errNoSuchItem
 }
 
-// 获取导出列勾选项
+// GetWebExportCheckOptions 获取导出列勾选项
 func (f *ItemManager) GetWebExportCheckOptions(portal string, token string) (string, error) {
 	p := f.GetItem(portal)
 	if p == nil {
